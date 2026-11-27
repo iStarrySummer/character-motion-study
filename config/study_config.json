@@ -1,6 +1,6 @@
 {
-  "study_name": "FAVE Section 5.3 Human Evaluation (3-Form Stratified IBD)",
-  "version": "v19",
+  "study_name": "Character Motion Study",
+  "version": "v20",
   "video_rules": {
     "mute_all_videos": true,
     "require_uniform_resolution": "320p",
@@ -13,10 +13,8 @@
     "setting_05": "setting_05__tts_neutral_reference__lora_off__noprompt",
     "setting_07": "setting_07__tts_original_guided__lora_on__noprompt"
   },
-  "PATH_TEMPLATE": "videos_320p_muted/{SETTING_DIR}/{character}/{scene_id}.mp4",
   "randomization_rules": {
-    "form_assignment": "Round-robin or random balanced across Form1, Form2, Form3 (target 12-13 participants per form -> >=10 valid after QC).",
-    "part_a_ab_swap": "At participant session start, assign base/test to Left(A)/Right(B) with exact 50/50 balance within each task (audio, prompt, lora). Never show setting names in UI."
+    "candidate_side": "Randomize within each comparison type, with a 7/8 split for the two sides."
   },
   "questions": {
     "PartA_Pairwise": {
@@ -106,40 +104,6 @@
           }
         ]
       }
-    }
-  },
-  "qc_rules": {
-    "qc_pair_pass": "diff_score == 0",
-    "min_total_duration_sec": 360,
-    "participant_valid_rule": "Pass the identical-pair check and total_duration_sec >= 360"
-  },
-  "forms_summary": {
-    "Form1": {
-      "total_trials": 26,
-      "part_a_count": 26,
-      "character_block_order": [
-        "Penny",
-        "Sheldon",
-        "Leonard"
-      ]
-    },
-    "Form2": {
-      "total_trials": 26,
-      "part_a_count": 26,
-      "character_block_order": [
-        "Sheldon",
-        "Leonard",
-        "Penny"
-      ]
-    },
-    "Form3": {
-      "total_trials": 27,
-      "part_a_count": 27,
-      "character_block_order": [
-        "Leonard",
-        "Penny",
-        "Sheldon"
-      ]
     }
   }
 }

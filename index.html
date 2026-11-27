@@ -6,10 +6,10 @@
   <meta name="color-scheme" content="light">
   <title>Character Motion Study</title>
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="style.css">
-  <script defer src="study-data.js"></script>
-  <script defer src="trios.js"></script>
-  <script defer src="app.js"></script>
+  <link rel="stylesheet" href="style.css?v=20">
+  <script defer src="study-data.js?v=20"></script>
+  <script defer src="trios.js?v=20"></script>
+  <script defer src="app.js?v=20"></script>
 </head>
 <body>
   <header class="site-header">
@@ -27,16 +27,9 @@
   <main class="page-width">
     <section id="start-screen" class="panel standalone-panel" aria-labelledby="start-title">
       <h2 id="start-title">Study setup</h2>
-      <p>Watch silent clips and compare facial expressions and head movements</p>
+      <p>Compare head movements and facial expressions in 30 silent video pairs</p>
       <form id="start-form">
         <div class="setup-fields">
-          <label for="form-picker">Assigned form
-            <select id="form-picker" name="form">
-              <option value="1">Form 1</option>
-              <option value="2">Form 2</option>
-              <option value="3">Form 3</option>
-            </select>
-          </label>
           <label for="participant-id">Participant ID
             <input id="participant-id" name="participant_id" type="text" placeholder="For example, P001" autocomplete="off" spellcheck="false" required>
           </label>

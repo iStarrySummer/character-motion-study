@@ -1,12 +1,12 @@
 'use strict';
 
-const {config: bundledConfig, forms} = window.FAVE_STUDY;
+const {config: bundledConfig, form} = window.FAVE_STUDY;
 const $ = id => document.getElementById(id);
 const params = new URLSearchParams(location.search);
-const activeKey = 'fave53-v18:active';
+const activeKey = 'fave53-v20:active';
 const csvFields = [
   'participant_id', 'form_id', 'order_index', 'item_id', 'part', 'role', 'task',
-  'character', 'scene_id', 'left_setting', 'right_setting', 'diff_score',
+  'round', 'character', 'scene_id', 'audio_comparison', 'lora_weights', 'left_setting', 'right_setting', 'diff_score',
   'both_resemble_reference', 'choice_raw', 'picked_setting', 'reason_tags', 'qc_passed', 'rt_ms', 'submitted_at',
 ];
 
@@ -34,7 +34,7 @@ function shuffled(items) {
 
 function assignSides(trials) {
   const result = {};
-  for (const task of ['audio', 'prompt', 'lora']) {
+  for (const task of ['audio', 'lora']) {
     const items = shuffled(trials.filter(trial => trial.task === task));
     const oneSide = items.length % 2 ? shuffled([false, true])[0] : false;
     const testOnLeft = Math.floor(items.length / 2) + Number(oneSide);
@@ -62,8 +62,6 @@ function save() {
 }
 
 function start(mode) {
-  const formNum = $('form-picker').value;
-  const form = forms[formNum];
   const enteredId = $('participant-id').value.trim();
   const participantId = mode === 'study' ? enteredId : 'Preview-' + form.form_id;
   if (!participantId) {
@@ -72,14 +70,13 @@ function start(mode) {
     return;
   }
 
-  storageKey = ['fave53-v18', mode, form.form_id, participantId].join(':');
+  storageKey = ['fave53-v20', mode, form.form_id, participantId].join(':');
   let previous;
   try { previous = JSON.parse(localStorage.getItem(storageKey)); }
   catch { previous = null; }
 
   session = previous ?? {
     mode,
-    formNum,
     participantId,
     startedAt: Date.now(),
     index: 0,
@@ -90,13 +87,13 @@ function start(mode) {
     completedAt: null,
   };
   const currentUrl = new URL(location.href);
-  currentUrl.searchParams.set('form', formNum);
+  currentUrl.searchParams.delete('form');
   if (mode !== 'study') currentUrl.searchParams.set('preview', '1');
   else currentUrl.searchParams.delete('preview');
   try { history.replaceState(null, '', currentUrl); }
   catch { /* Some browsers restrict URL updates for local files */ }
   try {
-    if (mode === 'study') sessionStorage.setItem(activeKey, JSON.stringify({formNum, participantId}));
+    if (mode === 'study') sessionStorage.setItem(activeKey, JSON.stringify({participantId}));
     else sessionStorage.removeItem(activeKey);
   } catch { /* In-progress responses can still be reopened by participant ID */ }
   if (session.completedAt) showFinish();
@@ -376,7 +373,7 @@ function showAnswers() {
 }
 
 function getTrial() {
-  return forms[session.formNum].trials[session.index];
+  return form.trials[session.index];
 }
 
 function updateGate() {
@@ -409,13 +406,13 @@ function renderTrial() {
     reason_tags: [],
     watch: Array.from({length: 2}, () => ({ranges: [], complete: false, position: 0})),
   };
-  updateProgressText(session.index + 1, forms[session.formNum].total_trials);
+  updateProgressText(session.index + 1, form.total_trials);
   route('trial');
   instructions();
   showTrio(trial);
   showAnswers();
   $('previous').disabled = session.index === 0;
-  $('continue').textContent = session.index + 1 === forms[session.formNum].total_trials ? 'Finish' : 'Next';
+  $('continue').textContent = session.index + 1 === form.total_trials ? 'Finish' : 'Next';
   updateGate();
   save();
   window.scrollTo(0, 0);
@@ -453,7 +450,10 @@ function submit() {
     part: trial.part,
     role: trial.role,
     task: trial.task,
+    round: trial.round,
     character: trial.character,
+    audio_comparison: trial.audio_comparison,
+    lora_weights: trial.lora_weights,
     scene_id: trial.scene_id,
     left_setting: left,
     right_setting: right,
@@ -462,14 +462,14 @@ function submit() {
     both_resemble_reference: draft.both_resemble_reference,
     picked_setting: ({A: left, B: right})[draft.choice_raw] ?? null,
     reason_tags: [...draft.reason_tags],
-    qc_passed: trial.role === 'qc_pair' ? draft.diff_score === 0 : null,
+    qc_passed: null,
     rt_ms: draft.elapsedMs,
     submitted_at: new Date(submitted).toISOString(),
   };
   const index = session.responses.findIndex(row => row.item_id === trial.item_id);
   if (index < 0) session.responses.push(response);
   else session.responses[index] = response;
-  if (session.index + 1 === forms[session.formNum].total_trials) {
+  if (session.index + 1 === form.total_trials) {
     session.completedAt = submitted;
     save();
     showFinish();
@@ -482,23 +482,20 @@ function submit() {
 function showFinish() {
   disposeTrio?.();
   route('finish');
-  updateProgressText(forms[session.formNum].total_trials, forms[session.formNum].total_trials);
+  updateProgressText(form.total_trials, form.total_trials);
   $('finish-message').textContent = session.responses.length + ' answers ready to download';
   window.scrollTo(0, 0);
 }
 
 function exportSession(ext) {
   const elapsed = Math.max(0, (session.completedAt - session.startedAt) / 1000);
-  const isStudy = session.mode === 'study';
-  const qualityChecks = session.responses.filter(record => record.qc_passed !== null);
   const summary = {
-    study_version: 'v19',
+    study_version: 'v20',
     participant_id: session.participantId,
-    form_id: forms[session.formNum].form_id,
+    form_id: form.form_id,
     mode: session.mode,
     total_duration_sec: elapsed,
-    participant_valid: isStudy && qualityChecks.length === 1 &&
-      qualityChecks.every(record => record.qc_passed) && elapsed >= config.qc_rules.min_total_duration_sec,
+    participant_valid: null,
   };
   function cell(value) {
     const result = Array.isArray(value) ? value.join('|') : String(value ?? '');
@@ -514,7 +511,7 @@ function exportSession(ext) {
   const link = node('a');
   link.href = href;
   const filename = session.participantId.replace(/[^a-zA-Z0-9_-]/g, '_');
-  link.download = 'FAVE-v19-' + forms[session.formNum].form_id + '-' + filename + '.' + ext;
+  link.download = 'FAVE-v20-' + form.form_id + '-' + filename + '.' + ext;
   document.body.append(link);
   link.click();
   link.remove();
@@ -524,7 +521,7 @@ function exportSession(ext) {
 async function loadConfig() {
   if (location.protocol !== 'file:') {
     try {
-      const response = await fetch('./config/study_config.json', {cache: 'no-store'});
+      const response = await fetch('./config/study_config.json?v=20', {cache: 'no-store'});
       if (response.ok) config = await response.json();
     } catch { /* The bundled configuration supports the offline preview */ }
   }
@@ -533,7 +530,6 @@ async function loadConfig() {
 
 $('start-preview').disabled = true;
 $('start-study').disabled = true;
-if (forms[params.get('form')]) $('form-picker').value = params.get('form');
 $('participant-id').addEventListener('input', () => $('participant-id').setCustomValidity(''));
 $('start-form').addEventListener('submit', event => {
   event.preventDefault();
@@ -556,8 +552,7 @@ loadConfig().then(() => {
   let active;
   try { active = JSON.parse(sessionStorage.getItem(activeKey)); }
   catch { active = null; }
-  if (active && forms[active.formNum] && (!params.has('form') || params.get('form') === active.formNum)) {
-    $('form-picker').value = active.formNum;
+  if (active?.participantId) {
     $('participant-id').value = active.participantId;
     start('study');
   }

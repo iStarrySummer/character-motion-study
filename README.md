@@ -1,5 +1,7 @@
-# Character Motion Study
+# Character Motion Study · v20
 
-Version 19 contains three questionnaires with 26, 26 and 27 video comparisons. Open the study, select the assigned form, enter a participant ID and choose **Start study**. Each comparison first shows Candidate A and Candidate B. Answer the first question to reveal the reference in the center.
+One questionnaire presents 30 selected video groups in five mixed rounds. Each round covers Audio and LoRA for Penny, Sheldon and Leonard. Leonard uses Sheldon’s LoRA weights. The Audio comparisons use TTS-N for Penny and Leonard and TTS-E for Sheldon.
 
-Progress is saved in the same browser. At the end, choose **Download CSV** or **Download JSON** to save the answers. This site does not upload responses to a server.
+Enter a participant ID to start. Progress is saved in the browser. At the end, download CSV or JSON to share the answers. The selected list includes no identical-pair check, so the quality-check and participant-validity fields are empty or null. The export includes the round, audio comparison, LoRA weights and actual left/right settings.
+
+[Current questionnaire](https://istarrysummer.github.io/character-motion-study/) · [Version 19 questionnaires](https://istarrysummer.github.io/character-motion-study/v19/)
