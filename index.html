@@ -6,10 +6,10 @@
   <meta name="color-scheme" content="light">
   <title>Character Motion Study</title>
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="style.css?v=20">
-  <script defer src="study-data.js?v=20"></script>
-  <script defer src="trios.js?v=20"></script>
-  <script defer src="app.js?v=20"></script>
+  <link rel="stylesheet" href="style.css?v=21">
+  <script defer src="study-data.js?v=21"></script>
+  <script defer src="trios.js?v=21"></script>
+  <script defer src="app.js?v=21"></script>
 </head>
 <body>
   <header class="site-header">
@@ -25,26 +25,10 @@
   </header>
 
   <main class="page-width">
-    <section id="start-screen" class="panel standalone-panel" aria-labelledby="start-title">
-      <h2 id="start-title">Study setup</h2>
-      <p>Compare head movements and facial expressions in 30 silent video pairs</p>
-      <form id="start-form">
-        <div class="setup-fields">
-          <label for="participant-id">Participant ID
-            <input id="participant-id" name="participant_id" type="text" placeholder="For example, P001" autocomplete="off" spellcheck="false" required>
-          </label>
-        </div>
-        <p id="start-status" class="status" role="status"></p>
-        <div class="button-group">
-          <button id="start-study" class="button button-primary" type="submit">Start study</button>
-          <button id="start-preview" class="button" type="button">Open preview</button>
-        </div>
-      </form>
-    </section>
-
     <section id="trial-screen" class="trial-layout" aria-label="Study question" hidden>
       <aside id="guidance" class="panel guidance-panel" aria-label="Instructions">
-        <div id="step-list"></div>
+        <h2>What to look for</h2>
+        <p>Watch the red-framed reference in the middle. Compare its head turns and facial expressions with A and B.</p>
         <div class="navigation-block">
           <p id="feedback" class="status" role="status"></p>
           <nav class="question-nav" aria-label="Question navigation">
@@ -65,10 +49,14 @@
       <div class="button-group">
         <button id="download-csv" class="button button-primary" type="button">Download CSV</button>
         <button id="download-json" class="button" type="button">Download JSON</button>
-        <button id="return-home" class="button" type="button">Back to setup</button>
+        <button id="new-session" class="button" type="button">Start a new participant</button>
       </div>
     </section>
 
+    <footer class="save-tools">
+      <p id="sync-status" role="status"></p>
+      <button id="partial-csv" class="button" type="button" disabled>Download CSV</button>
+    </footer>
     <noscript><p>This study needs JavaScript to show the clips and save answers</p></noscript>
   </main>
 </body>

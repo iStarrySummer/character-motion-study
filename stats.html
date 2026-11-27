@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Study results · Character Motion Study</title>
+  <link rel="stylesheet" href="style.css?v=21"><script src="stats.js?v=21" defer></script>
+  <style>
+    main.results { max-width: 1030px; } .results section { margin: 16px 0; }
+    .results form { display: flex; flex-wrap: wrap; align-items: end; gap: 10px; }
+    .results label { display: grid; gap: 6px; } .results input { min-height: 40px; padding: 4px 10px; }
+    .results table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    .results td,.results th { text-align: left; padding: 8px; border-bottom: 1px solid var(--line); }
+    .results h2 { margin-bottom: 8px; } .scroll-table { overflow-x:auto; }
+  </style>
+</head>
+<body><main class="page-width results">
+  <h1>Study results</h1>
+  <section class="panel"><form id="access"><label>Researcher key<input id="key" type="password" required autocomplete="current-password"></label>
+    <button class="button button-primary">View results</button></form><p id="status" role="status"></p></section>
+  <div id="results" hidden><section class="panel"><h2>Participation</h2><p id="totals"></p></section>
+    <section class="panel"><h2>Choices by comparison</h2><p>Includes saved answers from people who are still taking the study. Each answer counts once, using the latest choice.</p>
+    <div class="scroll-table"><table><thead><tr><th>Character</th><th>Comparison</th><th>First setting</th><th>Second setting</th><th>Second chosen</th></tr></thead><tbody id="groups"></tbody></table></div></section>
+    <section class="panel"><h2>Choices by question</h2><div class="scroll-table"><table><thead><tr><th>Question</th><th>Character</th><th>Scene</th><th>First setting</th><th>Second setting</th><th>Second chosen</th></tr></thead><tbody id="items"></tbody></table></div></section>
+  </div>
+</main></body></html>

@@ -1,19 +1,21 @@
 'use strict';
 
-const {config: bundledConfig, form} = window.FAVE_STUDY;
+const {config, form} = window.FAVE_STUDY;
 const $ = id => document.getElementById(id);
-const params = new URLSearchParams(location.search);
-const activeKey = 'fave53-v20:active';
-const csvFields = [
-  'participant_id', 'form_id', 'order_index', 'item_id', 'part', 'role', 'task',
-  'round', 'character', 'scene_id', 'audio_comparison', 'lora_weights', 'left_setting', 'right_setting', 'diff_score',
-  'both_resemble_reference', 'choice_raw', 'picked_setting', 'reason_tags', 'qc_passed', 'rt_ms', 'submitted_at',
-];
-
-let config = bundledConfig;
+const preview = ['1', 'id'].includes(new URLSearchParams(location.search).get('preview'));
+const prefix = 'fave53-v21:' + (preview ? 'preview:' : 'study:');
+const activeKey = prefix + 'active';
+const collector = 'https://fave-motion-results.helpfulchick2.chatgpt.site/api/responses';
+const csvFields = ['study_version','participant_id','form_id','order_index','item_id','round','task',
+  'character','scene_id','audio_comparison','lora_weights','left_setting','right_setting',
+  'choice_raw','picked_setting','rt_ms','submitted_at'];
 let session;
-let storageKey;
-let disposeTrio = null;
+let disposeTrio;
+let openedAt;
+let storedLocally = true;
+let syncing = false;
+let syncFailed = false;
+
 function node(tag, classes = '', text = '') {
   const element = document.createElement(tag);
   if (classes) element.className = classes;
@@ -43,113 +45,7 @@ function assignSides(trials) {
   return result;
 }
 
-function route(part) {
-  $('start-screen').hidden = part !== 'start';
-  $('trial-screen').hidden = part !== 'trial';
-  $('finish-screen').hidden = part !== 'finish';
-  $('progress-display').hidden = part === 'start';
-}
-
-function save() {
-  try {
-    localStorage.setItem(storageKey, JSON.stringify(session));
-    return true;
-  } catch {
-    const status = $('trial-screen').hidden ? $('start-status') : $('feedback');
-    status.textContent = 'This browser could not save progress. Keep this tab open until you export your answers.';
-    return false;
-  }
-}
-
-function start(mode) {
-  const enteredId = $('participant-id').value.trim();
-  const participantId = mode === 'study' ? enteredId : 'Preview-' + form.form_id;
-  if (!participantId) {
-    $('participant-id').setCustomValidity('Enter an anonymous participant ID');
-    $('participant-id').reportValidity();
-    return;
-  }
-
-  storageKey = ['fave53-v20', mode, form.form_id, participantId].join(':');
-  let previous;
-  try { previous = JSON.parse(localStorage.getItem(storageKey)); }
-  catch { previous = null; }
-
-  session = previous ?? {
-    mode,
-    participantId,
-    startedAt: Date.now(),
-    index: 0,
-    sides: assignSides(form.trials),
-    responses: [],
-    savedDrafts: {},
-    draft: null,
-    completedAt: null,
-  };
-  const currentUrl = new URL(location.href);
-  currentUrl.searchParams.delete('form');
-  if (mode !== 'study') currentUrl.searchParams.set('preview', '1');
-  else currentUrl.searchParams.delete('preview');
-  try { history.replaceState(null, '', currentUrl); }
-  catch { /* Some browsers restrict URL updates for local files */ }
-  try {
-    if (mode === 'study') sessionStorage.setItem(activeKey, JSON.stringify({participantId}));
-    else sessionStorage.removeItem(activeKey);
-  } catch { /* In-progress responses can still be reopened by participant ID */ }
-  if (session.completedAt) showFinish();
-  else renderTrial();
-}
-
-function showSetup() {
-  disposeTrio?.();
-  session = null;
-  try { sessionStorage.removeItem(activeKey); }
-  catch { /* Storage may be unavailable for local previews */ }
-  const url = new URL(location.href);
-  url.searchParams.delete('preview');
-  try { history.replaceState(null, '', url); }
-  catch { /* Some browsers restrict URL updates for local files */ }
-  route('start');
-}
-
-function instructions() {
-  const steps = [
-    ['Watch the head', ['Compare the head turns and tilts in A and B', 'Look at how far and how often each head moves']],
-    ['Watch the face', ['Look at the brows, eyes and mouth', 'Compare when each expression changes']],
-    ['Answer both questions', ['First decide how similar A and B look', 'Your first answer reveals the reference in the middle']],
-  ];
-  const list = node('ol', 'guide-steps step-timeline');
-  for (const [index, [heading, detail]] of steps.entries()) {
-    const item = node('li');
-    const title = node('h2');
-    title.append(node('span', 'step-number', String(index + 1)), document.createTextNode(heading));
-    const bullets = node('ul', 'step-details');
-    for (const text of detail) bullets.append(node('li', '', text));
-    item.append(title, bullets);
-    list.append(item);
-  }
-  $('step-list').replaceChildren(list);
-}
-
-function mergedRanges(ranges) {
-  const sorted = ranges.slice().sort((a, b) => a[0] - b[0]);
-  const result = [];
-  for (const [start, end] of sorted) {
-    const last = result.at(-1);
-    if (last && start <= last[1] + .015) last[1] = Math.max(last[1], end);
-    else result.push([start, end]);
-  }
-  return result;
-}
-
-function progressPct(watch, duration) {
-  if (watch.complete) return 100;
-  const covered = watch.ranges.reduce((total, [from, to]) => total + to - from, 0);
-  return Number.isFinite(duration) ? Math.min(99, Math.floor(100 * covered / duration)) : 0;
-}
-
 function showTrio(trial) {
-  const draft = session.draft;
   const video = node('video', 'trio-clock');
   video.playsInline = true;
   video.muted = true;
@@ -167,7 +63,6 @@ function showTrio(trial) {
   control.type = 'button';
   title.append(control);
   const displays = [];
-  const badges = [];
   function card(label, column, side) {
     const item = node('article', 'video-card');
     const caption = node('div', 'video-label', label);
@@ -183,21 +78,8 @@ function showTrio(trial) {
     canvas.setAttribute('aria-label', label);
     displays.push({context: canvas.getContext('2d'), column});
     frame.append(canvas);
-    if (!side) {
-      canvas.id = 'reference-picture';
-      canvas.hidden = draft.diff_score === null;
-      const mask = node('p', 'reference-mask', 'Answer question 1 to reveal the reference');
-      mask.id = 'reference-mask';
-      mask.hidden = !canvas.hidden;
-      frame.append(mask);
-    }
-    if (side) {
-      const badge = node('span', 'watch-badge');
-      badge.setAttribute('aria-label', 'Percent watched');
-      badges.push(badge);
-      frame.append(badge);
-    }
-    frame.addEventListener('click', () => { if (!canvas.hidden) toggleAll(); });
+    if (!side) canvas.id = 'reference-picture';
+    frame.addEventListener('click', toggleAll);
     item.append(caption, frame);
     return item;
   }
@@ -224,27 +106,6 @@ function showTrio(trial) {
     paint();
     frameRequest = nativeFrames ? video.requestVideoFrameCallback(nextFrame) : requestAnimationFrame(nextFrame);
   }
-  const watch = draft.watch[0];
-  const previousRanges = watch.ranges.map(range => range.slice());
-  function paintBadges() {
-    const percent = progressPct(watch, video.duration);
-    for (const badge of badges) {
-      badge.textContent = percent + '%';
-      badge.style.setProperty('--watched', percent + '%');
-    }
-  }
-  function track() {
-    if (!live || session?.draft !== draft || watch.complete || !Number.isFinite(video.duration)) return;
-    const played = Array.from({length: video.played.length}, (_, i) => [video.played.start(i), video.played.end(i)]);
-    watch.ranges = mergedRanges(previousRanges.concat(played));
-    watch.position = video.currentTime;
-    const covered = watch.ranges.reduce((sum, [from, to]) => sum + to - from, 0);
-    watch.complete = video.ended && covered >= video.duration - Math.min(.06, video.duration * .02);
-    Object.assign(draft.watch[1], watch);
-    paintBadges();
-    updateGate();
-    save();
-  }
   function setButton() {
     control.textContent = video.paused ? 'Play all' : 'Pause all';
     control.dataset.state = video.paused ? 'play' : 'pause';
@@ -259,26 +120,15 @@ function showTrio(trial) {
     else video.pause();
   }
   control.addEventListener('click', toggleAll);
-  video.addEventListener('loadedmetadata', () => {
-    if (!watch.complete && watch.position > 0 && watch.position < video.duration) video.currentTime = watch.position;
-    paintBadges();
-  });
   video.addEventListener('loadeddata', paint);
   video.addEventListener('seeked', paint);
   video.addEventListener('play', setButton);
-  video.addEventListener('pause', () => { setButton(); track(); });
-  video.addEventListener('timeupdate', track);
-  video.addEventListener('ended', () => {
-    if (!live || session?.draft !== draft) return;
-    track();
-    video.currentTime = 0;
-    playAll();
-  });
+  video.addEventListener('pause', setButton);
+  video.loop = true;
   video.addEventListener('error', () => {
     if (live) $('feedback').textContent = 'The comparison video could not be loaded';
   });
   disposeTrio = () => {
-    track();
     live = false;
     if (nativeFrames) video.cancelVideoFrameCallback(frameRequest);
     else cancelAnimationFrame(frameRequest);
@@ -287,103 +137,9 @@ function showTrio(trial) {
     video.load();
     disposeTrio = null;
   };
-  paintBadges();
   video.src = window.FAVE_TRIOS[trial.item_id];
   nextFrame();
   playAll();
-}
-
-function questionField(question, number) {
-  const field = question.field;
-  const item = node('fieldset', 'answer-group');
-  const legend = node('legend', '', question.label_en);
-  if (number) legend.prepend(node('span', 'question-number', String(number)), ' ');
-  item.append(legend);
-  const multiple = question.multi_select === true;
-  const choices = node('div', 'options');
-  for (const {value, label_en: label} of question.options) {
-    const option = node('label', 'option');
-    const input = node('input');
-    input.type = multiple ? 'checkbox' : 'radio';
-    input.name = field;
-    input.value = String(value);
-    input.checked = multiple ? session.draft[field].includes(value) : session.draft[field] === value;
-    input.addEventListener('change', () => {
-      const draft = session.draft;
-      if (multiple) {
-        if (input.checked && !draft[field].includes(value)) draft[field].push(value);
-        if (!input.checked) draft[field] = draft[field].filter(tag => tag !== value);
-      } else {
-        draft[field] = value;
-        if (field === 'diff_score') {
-          draft.choice_raw = null;
-          draft.both_resemble_reference = null;
-          draft.reason_tags = [];
-          showFollowUp();
-        } else if (field === 'choice_raw') {
-          draft.reason_tags = [];
-          showReasons();
-        }
-      }
-      updateGate();
-      save();
-    });
-    option.append(input, node('span', '', label));
-    choices.append(option);
-  }
-  item.append(choices);
-  return item;
-}
-
-function showReasons() {
-  $('reason-tags')?.remove();
-  if (!session.draft.choice_raw) return;
-  const reasons = questionField(config.questions.PartA_Pairwise.q3_reasons_optional);
-  reasons.id = 'reason-tags';
-  reasons.querySelector('legend').append(' (optional, select all that apply)');
-  const choices = reasons.querySelector('.options');
-  const labels = [...choices.children];
-  const numbers = ['1', '2.1', '2.2', '2.3'];
-  labels.forEach((label, index) => {
-    label.querySelector('span').prepend(node('strong', 'reason-number', numbers[index]), ' ');
-  });
-  const faceOptions = node('div', 'face-options');
-  faceOptions.append(...labels.slice(1));
-  choices.replaceChildren(labels[0], faceOptions);
-  $('answers').append(reasons);
-}
-
-function showFollowUp() {
-  $('follow-up')?.remove();
-  $('reason-tags')?.remove();
-  const {diff_score} = session.draft;
-  $('reference-picture').hidden = diff_score === null;
-  $('reference-mask').hidden = diff_score !== null;
-  if (diff_score === null) return;
-  const pair = config.questions.PartA_Pairwise;
-  const followUp = questionField(diff_score === 0 ? pair.q2_reference : pair.q2_choice, 2);
-  followUp.id = 'follow-up';
-  $('answers').append(followUp);
-  if (diff_score === 1) showReasons();
-}
-
-function showAnswers() {
-  $('answers').replaceChildren(questionField(config.questions.PartA_Pairwise.q1_diff, 1));
-  showFollowUp();
-}
-
-function getTrial() {
-  return form.trials[session.index];
-}
-
-function updateGate() {
-  const draft = session.draft;
-  const complete = draft.watch.every(watch => watch.complete);
-  const answered = (draft.diff_score === 0 && draft.both_resemble_reference !== null) ||
-    (draft.diff_score === 1 && draft.choice_raw !== null);
-  $('continue').disabled = !complete || !answered;
-  $('feedback').textContent = !complete ? 'Watch both candidates to the end'
-    : (!answered ? 'Answer both questions to continue' : '');
 }
 
 function updateProgressText(position, total) {
@@ -394,166 +150,172 @@ function updateProgressText(position, total) {
   bar.setAttribute('aria-valuetext', 'Question ' + position + ' of ' + total);
 }
 
-function renderTrial() {
+function read(key) {
+  try { return JSON.parse(localStorage.getItem(key)); } catch { return null; }
+}
+function write(key, value) {
+  try { localStorage.setItem(key, JSON.stringify(value)); return true; } catch { return false; }
+}
+function save() {
+  storedLocally = write(prefix + session.id, session) && write(activeKey, session.id);
+  updateStatus();
+}
+function start(fresh = false) {
   disposeTrio?.();
-  const trial = getTrial();
-  if (!session.draft && session.savedDrafts[trial.item_id]) session.savedDrafts[trial.item_id].openedAt = Date.now();
-  session.draft ??= session.savedDrafts[trial.item_id] ?? {
-    openedAt: Date.now(),
-    choice_raw: null,
-    diff_score: null,
-    both_resemble_reference: null,
-    reason_tags: [],
-    watch: Array.from({length: 2}, () => ({ranges: [], complete: false, position: 0})),
+  session = fresh ? null : read(prefix + read(activeKey));
+  session ??= {
+    id: crypto.randomUUID(), secret: crypto.randomUUID(), sides: assignSides(form.trials),
+    index: 0, rows: {}, revision: 0, ack: 0, complete: false,
   };
-  updateProgressText(session.index + 1, form.total_trials);
-  route('trial');
-  instructions();
-  showTrio(trial);
-  showAnswers();
-  $('previous').disabled = session.index === 0;
-  $('continue').textContent = session.index + 1 === form.total_trials ? 'Finish' : 'Next';
-  updateGate();
   save();
-  window.scrollTo(0, 0);
+  render();
+  sync();
 }
 
-function leaveQuestion(now) {
-  disposeTrio?.();
-  const draft = session.draft;
-  draft.elapsedMs = (draft.elapsedMs || 0) + Math.max(0, now - draft.openedAt);
-  session.savedDrafts[getTrial().item_id] = draft;
-  session.draft = null;
+function updateStatus() {
+  const count = Object.keys(session.rows).length;
+  $('partial-csv').disabled = !count;
+  $('partial-csv').hidden = session.complete;
+  let message;
+  if (preview) message = 'Preview · answers stay in this browser';
+  else if (!count) message = 'Anonymous answers save online when connected. You can also download a CSV.';
+  else if (session.ack === session.revision) message = count + ' of ' + form.total_trials + ' answers saved online';
+  else if (!navigator.onLine || syncFailed) message = 'Waiting to sync. You can download your answers as a CSV.';
+  else message = 'Saving answers online…';
+  if (!storedLocally) message += ' Browser storage is unavailable. Keep this tab open or download a CSV.';
+  $('sync-status').textContent = message;
 }
 
-function previousQuestion() {
-  if ($('previous').disabled || !session.draft) return;
-  leaveQuestion(Date.now());
-  session.index--;
-  renderTrial();
+async function sync() {
+  if (syncing || preview || !navigator.onLine) { updateStatus(); return; }
+  syncing = true;
+  try {
+    const pending = new Set([session.id]);
+    // A second participant can start on this device while the first is offline.
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key?.startsWith(prefix) && key !== activeKey) pending.add(key.slice(prefix.length));
+      }
+    } catch { /* The active session can still sync from memory. */ }
+    for (const id of pending) {
+      const record = id === session.id ? session : read(prefix + id);
+      if (!record || record.revision <= record.ack) continue;
+      const revision = record.revision;
+      const answers = Object.values(record.rows).map(row => ({
+        item:row.item_id, choice:row.choice_raw, left:row.left_setting, rt:row.rt_ms, at:row.submitted_at
+      }));
+      const response = await fetch(collector, {method:'POST', credentials:'omit',
+        headers:{'Content-Type':'application/json'}, signal:AbortSignal.timeout(12000),
+        body:JSON.stringify({version:'v21', id, secret:record.secret, revision, answers, complete:record.complete})});
+      if (!response.ok) throw Error('Submission failed');
+      const saved = await response.json();
+      if (saved.id !== id || saved.revision !== revision) throw Error('Missing receipt');
+      const latest = session.id === id ? session : read(prefix + id);
+      if (latest) {
+        latest.ack = Math.max(latest.ack, revision);
+        if (latest === session) save(); else write(prefix + id, latest);
+      }
+      syncFailed = false;
+    }
+  } catch { syncFailed = true; }
+  finally { syncing = false; updateStatus(); }
+  if (!syncFailed && session.ack < session.revision && navigator.onLine) void sync();
 }
 
-function submit() {
-  if ($('continue').disabled || !session.draft) return;
-  const trial = getTrial();
-  const draft = session.draft;
+function choose(trial, choice) {
   const swap = session.sides[trial.item_id];
   const left = swap ? trial.test_setting : trial.base_setting;
   const right = swap ? trial.base_setting : trial.test_setting;
-  const submitted = Date.now();
-  leaveQuestion(submitted);
-  const response = {
-    participant_id: session.participantId,
-    form_id: trial.form_id,
-    order_index: trial.order_index,
-    item_id: trial.item_id,
-    part: trial.part,
-    role: trial.role,
-    task: trial.task,
-    round: trial.round,
-    character: trial.character,
-    audio_comparison: trial.audio_comparison,
-    lora_weights: trial.lora_weights,
-    scene_id: trial.scene_id,
-    left_setting: left,
-    right_setting: right,
-    diff_score: draft.diff_score,
-    choice_raw: draft.choice_raw,
-    both_resemble_reference: draft.both_resemble_reference,
-    picked_setting: ({A: left, B: right})[draft.choice_raw] ?? null,
-    reason_tags: [...draft.reason_tags],
-    qc_passed: null,
-    rt_ms: draft.elapsedMs,
-    submitted_at: new Date(submitted).toISOString(),
-  };
-  const index = session.responses.findIndex(row => row.item_id === trial.item_id);
-  if (index < 0) session.responses.push(response);
-  else session.responses[index] = response;
-  if (session.index + 1 === form.total_trials) {
-    session.completedAt = submitted;
-    save();
-    showFinish();
-  } else {
-    session.index++;
-    renderTrial();
-  }
+  const now = Date.now();
+  const old = session.rows[trial.item_id];
+  session.rows[trial.item_id] = {study_version:'v21', participant_id:session.id, form_id:form.form_id,
+    order_index:trial.order_index, item_id:trial.item_id, round:trial.round, task:trial.task,
+    character:trial.character, scene_id:trial.scene_id, audio_comparison:trial.audio_comparison,
+    lora_weights:trial.lora_weights, left_setting:left, right_setting:right, choice_raw:choice,
+    picked_setting:choice === 'A' ? left : right, rt_ms:(old?.rt_ms || 0) + Math.max(0,now-openedAt),
+    submitted_at:new Date(now).toISOString()};
+  openedAt = now;
+  session.revision++;
+  $('continue').disabled = false;
+  save();
+  void sync();
 }
 
-function showFinish() {
+function render() {
   disposeTrio?.();
-  route('finish');
-  updateProgressText(form.total_trials, form.total_trials);
-  $('finish-message').textContent = session.responses.length + ' answers ready to download';
-  window.scrollTo(0, 0);
-}
-
-function exportSession(ext) {
-  const elapsed = Math.max(0, (session.completedAt - session.startedAt) / 1000);
-  const summary = {
-    study_version: 'v20',
-    participant_id: session.participantId,
-    form_id: form.form_id,
-    mode: session.mode,
-    total_duration_sec: elapsed,
-    participant_valid: null,
-  };
-  function cell(value) {
-    const result = Array.isArray(value) ? value.join('|') : String(value ?? '');
-    return /[",\n\r]/.test(result) ? '"' + result.replaceAll('"', '""') + '"' : result;
+  $('progress-display').hidden = false;
+  $('trial-screen').hidden = session.complete;
+  $('finish-screen').hidden = !session.complete;
+  updateProgressText(session.index+1,form.total_trials);
+  if (session.complete) {
+    $('finish-message').textContent = Object.keys(session.rows).length + ' answers ready to download';
+  } else {
+    const trial = form.trials[session.index];
+    openedAt = Date.now();
+    $('feedback').textContent = '';
+    showTrio(trial);
+    const question = config.questions.PartA_Pairwise.choice;
+    const field = node('fieldset','answer-group');
+    field.append(node('legend','',question.label_en));
+    const choices = node('div','options');
+    for (const {value, label_en} of question.options) {
+      const option = node('label','option');
+      const input = node('input');
+      input.type = 'radio';
+      input.name = 'choice_raw';
+      input.value = value;
+      input.checked = session.rows[trial.item_id]?.choice_raw === value;
+      input.addEventListener('change', () => choose(trial,value));
+      option.append(input,node('span','',label_en));
+      choices.append(option);
+    }
+    field.append(choices);
+    $('answers').replaceChildren(field);
+    $('previous').disabled = session.index === 0;
+    $('continue').disabled = !session.rows[trial.item_id];
+    $('continue').textContent = session.index === form.total_trials-1 ? 'Finish' : 'Next';
   }
-  const isCsv = ext === 'csv';
-  const payload = isCsv
-    ? '\uFEFF' + [csvFields.join(','), ...session.responses.map(row =>
-      csvFields.map(field => cell(row[field])).join(','))].join('\r\n') + '\r\n'
-    : JSON.stringify({session: summary, responses: session.responses}, null, 2) + '\n';
-  const href = URL.createObjectURL(new Blob([payload],
-    {type: isCsv ? 'text/csv;charset=utf-8' : 'application/json;charset=utf-8'}));
+  updateStatus();
+  window.scrollTo(0,0);
+}
+function navigate(direction) {
+  if (direction > 0 && !session.rows[form.trials[session.index].item_id]) return;
+  if (session.index + direction === form.total_trials) {
+    session.complete = true;
+    session.revision++;
+  } else session.index += direction;
+  save();
+  render();
+  void sync();
+}
+function download(ext) {
+  const rows = Object.values(session.rows).sort((a,b) => a.order_index-b.order_index);
+  const cell = value => '"' + String(value ?? '').replaceAll('"','""') + '"';
+  const csv = ext === 'csv';
+  const payload = csv ? '\uFEFF' + [csvFields.join(','), ...rows.map(row => csvFields.map(k => cell(row[k])).join(','))].join('\r\n') + '\r\n'
+    : JSON.stringify({session:{study_version:'v21',participant_id:session.id,complete:session.complete,preview},responses:rows},null,2);
+  const url = URL.createObjectURL(new Blob([payload],{type:csv ? 'text/csv;charset=utf-8' : 'application/json'}));
   const link = node('a');
-  link.href = href;
-  const filename = session.participantId.replace(/[^a-zA-Z0-9_-]/g, '_');
-  link.download = 'FAVE-v20-' + form.form_id + '-' + filename + '.' + ext;
-  document.body.append(link);
+  link.href = url;
+  link.download = 'FAVE-v21-' + (preview?'preview-':'') + session.id + '.' + ext;
   link.click();
-  link.remove();
-  setTimeout(() => URL.revokeObjectURL(href), 1000);
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
-
-async function loadConfig() {
-  if (location.protocol !== 'file:') {
-    try {
-      const response = await fetch('./config/study_config.json?v=20', {cache: 'no-store'});
-      if (response.ok) config = await response.json();
-    } catch { /* The bundled configuration supports the offline preview */ }
-  }
-
-}
-
-$('start-preview').disabled = true;
-$('start-study').disabled = true;
-$('participant-id').addEventListener('input', () => $('participant-id').setCustomValidity(''));
-$('start-form').addEventListener('submit', event => {
-  event.preventDefault();
-  if (!$('start-study').disabled) start('study');
+$('previous').onclick = () => navigate(-1);
+$('continue').onclick = () => navigate(1);
+$('new-session').onclick = () => start(true);
+$('download-csv').onclick = $('partial-csv').onclick = () => download('csv');
+$('download-json').onclick = () => download('json');
+window.addEventListener('online',sync);
+window.addEventListener('offline',updateStatus);
+window.addEventListener('storage',event => {
+  if (event.key !== prefix + session.id || !event.newValue) return;
+  const latest = JSON.parse(event.newValue);
+  if (latest.revision < session.revision) return;
+  const redraw = latest.revision !== session.revision || latest.index !== session.index;
+  session = latest;
+  if (redraw) render(); else updateStatus();
 });
-$('start-preview').addEventListener('click', () => start('preview'));
-$('previous').addEventListener('click', previousQuestion);
-$('continue').addEventListener('click', submit);
-$('download-csv').addEventListener('click', () => exportSession('csv'));
-$('download-json').addEventListener('click', () => exportSession('json'));
-$('return-home').addEventListener('click', showSetup);
-loadConfig().then(() => {
-  $('start-study').disabled = false;
-  $('start-preview').disabled = false;
-  const previewMode = params.get('preview');
-  if (previewMode === '1' || previewMode === 'id') {
-    start('preview');
-    return;
-  }
-  let active;
-  try { active = JSON.parse(sessionStorage.getItem(activeKey)); }
-  catch { active = null; }
-  if (active?.participantId) {
-    $('participant-id').value = active.participantId;
-    start('study');
-  }
-});
+setInterval(sync,15000);
+start();
