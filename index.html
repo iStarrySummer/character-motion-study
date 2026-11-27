@@ -6,10 +6,10 @@
   <meta name="color-scheme" content="light">
   <title>Character Motion Study</title>
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="style.css?v=22">
-  <script defer src="study-data.js?v=22"></script>
-  <script defer src="trios.js?v=22"></script>
-  <script defer src="app.js?v=22"></script>
+  <link rel="stylesheet" href="style.css?v=23">
+  <script defer src="study-data.js?v=23"></script>
+  <script defer src="trios.js?v=23"></script>
+  <script defer src="app.js?v=23"></script>
 </head>
 <body>
   <header class="site-header">
@@ -27,13 +27,13 @@
   <main class="page-width">
     <section id="trial-screen" class="trial-layout" aria-label="Study question" hidden>
       <section id="candidates" class="panel" aria-label="Videos to judge"></section>
-      <section class="panel response-panel" aria-label="Your answer and navigation">
+      <section class="panel response-panel" aria-label="Your answer">
         <div id="answers"></div>
-        <nav class="question-nav" aria-label="Question navigation">
-          <button id="previous" class="button" type="button">Previous</button>
-          <button id="continue" class="button button-primary" type="button" disabled>Next</button>
-        </nav>
       </section>
+      <nav class="question-nav" aria-label="Question navigation">
+        <button id="previous" class="button" type="button">Previous</button>
+        <button id="continue" class="button button-primary" type="button" disabled>Next</button>
+      </nav>
       <p id="feedback" class="status" role="status"></p>
     </section>
 

@@ -1,4 +1,5 @@
 :root {
+  --panel-padding: 16px;
   color-scheme: light;
   --paper: #faf8f4;
   --card: #fefefe;
@@ -55,7 +56,7 @@ h1, h2, h3, p { margin: 0; }
 .study-progress::-moz-progress-bar { background: var(--accent); border-radius: 999px; }
 
 main.page-width { padding-block: 12px; }
-.panel { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; }
+.panel { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: var(--panel-padding); }
 .standalone-panel { width: min(100%, 620px); padding: clamp(20px, 4vw, 36px); margin: clamp(16px, 10vh, 105px) auto 0; }
 .standalone-panel > h2 { font-size: clamp(1.5rem, 3vw, 2rem); margin-bottom: 8px; line-height: 1.2; }
 .standalone-panel > p { margin-bottom: 18px; color: var(--muted); }
@@ -293,7 +294,7 @@ main.page-width { padding-block: 12px; }
 }
 @media (max-width: 520px) {
   .page-width { width: calc(100% - 16px); }
-  .panel { padding: 10px; }
+  :root { --panel-padding: 10px; }
   .standalone-panel { padding: 16px; }
   .header-inner { padding-block: 6px; flex-wrap: wrap; }
   .reference-grid, .candidate-grid, .actor-views { gap: 6px; }
@@ -385,14 +386,14 @@ main.page-width { padding-block: 12px; }
 /* A, the reference, and B share the same column widths in both panels. */
 main.page-width, .header-inner { max-width: 980px; }
 .trial-layout { --trio-gap: clamp(8px, 1.6vw, 24px); }
-.trio-row, .response-panel .answer-group .options, .response-panel .question-nav {
+.trio-row, .response-panel .answer-group .options, .trial-layout > .question-nav {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   column-gap: var(--trio-gap);
 }
 .response-panel .option:last-child, .question-nav #continue { grid-column: 3; }
-.response-panel .question-nav { margin-top: 12px; }
-.response-panel .question-nav .button { min-height: 42px; }
+.trial-layout > .question-nav { padding-inline: calc(var(--panel-padding) + 1px); }
+.trial-layout > .question-nav .button { min-height: 42px; }
 @media (max-width: 520px) {
   .watch-badge { width: 27px; height: 27px; right: 3px; top: 3px; font-size: .64rem; }
   .section-title .play-both { padding-inline: 10px; }
