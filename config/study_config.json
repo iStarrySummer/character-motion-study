@@ -1,6 +1,6 @@
 {
   "study_name": "Character Motion Study",
-  "version": "v21",
+  "version": "v22",
   "video_rules": {
     "mute_all_videos": true,
     "require_uniform_resolution": "320p"
@@ -20,8 +20,8 @@
       "choice": {
         "field": "choice_raw",
         "required": true,
-        "label_zh": "哪一个候选视频的头部运动和面部表情更像参考视频？",
-        "label_en": "Which candidate moves more like the GT reference?",
+        "label_zh": "观察头部、眉毛和嘴巴的运动，哪一个候选视频更像 GT 参考视频？",
+        "label_en": "Which candidate’s head, eyebrow, and mouth movements are closer to the GT reference?",
         "options": [
           {
             "value": "A",

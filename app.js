@@ -3,6 +3,7 @@
 const {config, form} = window.FAVE_STUDY;
 const $ = id => document.getElementById(id);
 const preview = ['1', 'id'].includes(new URLSearchParams(location.search).get('preview'));
+// Keep v21 sessions and their queued uploads across this layout update.
 const prefix = 'fave53-v21:' + (preview ? 'preview:' : 'study:');
 const activeKey = prefix + 'active';
 const collector = 'https://fave-motion-results.helpfulchick2.chatgpt.site/api/responses';
@@ -57,12 +58,25 @@ function showTrio(trial) {
   candidatePanel.replaceChildren();
   candidatePanel.setAttribute('aria-label', 'Reference and candidate videos');
   const title = node('header', 'section-title');
-  title.append(node('h2', '', 'Compare the movements'));
+  title.append(node('h2', '', 'Watch the head, eyebrows, and mouth'));
   candidatePanel.append(title);
   const control = node('button', 'play-button play-both', 'Play all');
   control.type = 'button';
   title.append(control);
   const displays = [];
+  const rings = [];
+  const watched = session.watched ??= {};
+  let percent = watched[trial.item_id] ?? 0;
+  function updateRings(value) {
+    if (value <= percent) return;
+    percent = value;
+    watched[trial.item_id] = value;
+    for (const ring of rings) {
+      ring.textContent = value + '%';
+      ring.style.setProperty('--watched', ring.textContent);
+      ring.setAttribute('aria-valuenow', value);
+    }
+  }
   function card(label, column, side) {
     const item = node('article', 'video-card');
     const caption = node('div', 'video-label', label);
@@ -77,7 +91,13 @@ function showTrio(trial) {
     canvas.setAttribute('role', 'img');
     canvas.setAttribute('aria-label', label);
     displays.push({context: canvas.getContext('2d'), column});
-    frame.append(canvas);
+    const ring = node('span', 'watch-badge', percent + '%');
+    ring.setAttribute('role', 'progressbar');
+    ring.setAttribute('aria-label', label + ' watched');
+    ring.setAttribute('aria-valuenow', percent);
+    ring.style.setProperty('--watched', ring.textContent);
+    rings.push(ring);
+    frame.append(canvas, ring);
     if (!side) canvas.id = 'reference-picture';
     frame.addEventListener('click', toggleAll);
     item.append(caption, frame);
@@ -124,7 +144,17 @@ function showTrio(trial) {
   video.addEventListener('seeked', paint);
   video.addEventListener('play', setButton);
   video.addEventListener('pause', setButton);
-  video.loop = true;
+  video.addEventListener('timeupdate', () => {
+    if (live && Number.isFinite(video.duration) && video.duration > 0) {
+      updateRings(Math.floor(100 * video.currentTime / video.duration));
+    }
+  });
+  video.addEventListener('ended', () => {
+    if (!live) return;
+    updateRings(100);
+    video.currentTime = 0;
+    playAll();
+  });
   video.addEventListener('error', () => {
     if (live) $('feedback').textContent = 'The comparison video could not be loaded';
   });
@@ -174,15 +204,13 @@ function start(fresh = false) {
 
 function updateStatus() {
   const count = Object.keys(session.rows).length;
-  $('partial-csv').disabled = !count;
-  $('partial-csv').hidden = session.complete;
   let message;
   if (preview) message = 'Preview · answers stay in this browser';
-  else if (!count) message = 'Anonymous answers save online when connected. You can also download a CSV.';
+  else if (!count) message = 'Anonymous answers save online when connected.';
   else if (session.ack === session.revision) message = count + ' of ' + form.total_trials + ' answers saved online';
-  else if (!navigator.onLine || syncFailed) message = 'Waiting to sync. You can download your answers as a CSV.';
+  else if (!navigator.onLine || syncFailed) message = 'Waiting for a connection to save answers online.';
   else message = 'Saving answers online…';
-  if (!storedLocally) message += ' Browser storage is unavailable. Keep this tab open or download a CSV.';
+  if (!storedLocally) message += ' Browser storage is unavailable. Keep this tab open until you finish.';
   $('sync-status').textContent = message;
 }
 
@@ -229,7 +257,7 @@ function choose(trial, choice) {
   const right = swap ? trial.base_setting : trial.test_setting;
   const now = Date.now();
   const old = session.rows[trial.item_id];
-  session.rows[trial.item_id] = {study_version:'v21', participant_id:session.id, form_id:form.form_id,
+  session.rows[trial.item_id] = {study_version:config.version, participant_id:session.id, form_id:form.form_id,
     order_index:trial.order_index, item_id:trial.item_id, round:trial.round, task:trial.task,
     character:trial.character, scene_id:trial.scene_id, audio_comparison:trial.audio_comparison,
     lora_weights:trial.lora_weights, left_setting:left, right_setting:right, choice_raw:choice,
@@ -290,22 +318,23 @@ function navigate(direction) {
   void sync();
 }
 function download(ext) {
+  if (!session.complete || Object.keys(session.rows).length !== form.total_trials) return;
   const rows = Object.values(session.rows).sort((a,b) => a.order_index-b.order_index);
   const cell = value => '"' + String(value ?? '').replaceAll('"','""') + '"';
   const csv = ext === 'csv';
   const payload = csv ? '\uFEFF' + [csvFields.join(','), ...rows.map(row => csvFields.map(k => cell(row[k])).join(','))].join('\r\n') + '\r\n'
-    : JSON.stringify({session:{study_version:'v21',participant_id:session.id,complete:session.complete,preview},responses:rows},null,2);
+    : JSON.stringify({session:{study_version:config.version,participant_id:session.id,complete:session.complete,preview},responses:rows},null,2);
   const url = URL.createObjectURL(new Blob([payload],{type:csv ? 'text/csv;charset=utf-8' : 'application/json'}));
   const link = node('a');
   link.href = url;
-  link.download = 'FAVE-v21-' + (preview?'preview-':'') + session.id + '.' + ext;
+  link.download = 'FAVE-' + config.version + '-' + (preview?'preview-':'') + session.id + '.' + ext;
   link.click();
   setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 $('previous').onclick = () => navigate(-1);
 $('continue').onclick = () => navigate(1);
 $('new-session').onclick = () => start(true);
-$('download-csv').onclick = $('partial-csv').onclick = () => download('csv');
+$('download-csv').onclick = () => download('csv');
 $('download-json').onclick = () => download('json');
 window.addEventListener('online',sync);
 window.addEventListener('offline',updateStatus);

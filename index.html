@@ -6,10 +6,10 @@
   <meta name="color-scheme" content="light">
   <title>Character Motion Study</title>
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="style.css?v=21">
-  <script defer src="study-data.js?v=21"></script>
-  <script defer src="trios.js?v=21"></script>
-  <script defer src="app.js?v=21"></script>
+  <link rel="stylesheet" href="style.css?v=22">
+  <script defer src="study-data.js?v=22"></script>
+  <script defer src="trios.js?v=22"></script>
+  <script defer src="app.js?v=22"></script>
 </head>
 <body>
   <header class="site-header">
@@ -26,21 +26,15 @@
 
   <main class="page-width">
     <section id="trial-screen" class="trial-layout" aria-label="Study question" hidden>
-      <aside id="guidance" class="panel guidance-panel" aria-label="Instructions">
-        <h2>What to look for</h2>
-        <p>Watch the red-framed reference in the middle. Compare its head turns and facial expressions with A and B.</p>
-        <div class="navigation-block">
-          <p id="feedback" class="status" role="status"></p>
-          <nav class="question-nav" aria-label="Question navigation">
-            <button id="previous" class="button" type="button">Previous</button>
-            <button id="continue" class="button button-primary" type="button" disabled>Next</button>
-          </nav>
-        </div>
-      </aside>
-      <div class="question-content">
-        <section id="candidates" class="panel" aria-label="Videos to judge"></section>
-        <section id="answers" class="panel answers-panel" aria-label="Your answers"></section>
-      </div>
+      <section id="candidates" class="panel" aria-label="Videos to judge"></section>
+      <section class="panel response-panel" aria-label="Your answer and navigation">
+        <div id="answers"></div>
+        <nav class="question-nav" aria-label="Question navigation">
+          <button id="previous" class="button" type="button">Previous</button>
+          <button id="continue" class="button button-primary" type="button" disabled>Next</button>
+        </nav>
+      </section>
+      <p id="feedback" class="status" role="status"></p>
     </section>
 
     <section id="finish-screen" class="panel standalone-panel" aria-labelledby="finish-title" hidden>
@@ -55,7 +49,6 @@
 
     <footer class="save-tools">
       <p id="sync-status" role="status"></p>
-      <button id="partial-csv" class="button" type="button" disabled>Download CSV</button>
     </footer>
     <noscript><p>This study needs JavaScript to show the clips and save answers</p></noscript>
   </main>

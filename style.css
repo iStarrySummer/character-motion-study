@@ -85,7 +85,7 @@ main.page-width { padding-block: 12px; }
 
 .trial-layout {
   display: grid;
-  grid-template-columns: minmax(230px, .32fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   align-items: start;
   gap: 16px;
 }
@@ -320,7 +320,6 @@ main.page-width { padding-block: 12px; }
 .trio-clock { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 
 .trio-row {
-  --trio-gap: clamp(8px, 1.6vw, 24px);
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px var(--trio-gap);
@@ -381,3 +380,20 @@ main.page-width { padding-block: 12px; }
 
 .guidance-panel > h2 { font-size: 1.125rem; margin-bottom: .5rem; }
 .save-tools { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin: 16px 0; color: var(--muted); }
+
+
+/* A, the reference, and B share the same column widths in both panels. */
+main.page-width, .header-inner { max-width: 980px; }
+.trial-layout { --trio-gap: clamp(8px, 1.6vw, 24px); }
+.trio-row, .response-panel .answer-group .options, .response-panel .question-nav {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  column-gap: var(--trio-gap);
+}
+.response-panel .option:last-child, .question-nav #continue { grid-column: 3; }
+.response-panel .question-nav { margin-top: 12px; }
+.response-panel .question-nav .button { min-height: 42px; }
+@media (max-width: 520px) {
+  .watch-badge { width: 27px; height: 27px; right: 3px; top: 3px; font-size: .64rem; }
+  .section-title .play-both { padding-inline: 10px; }
+}
