@@ -6,13 +6,13 @@
   <meta name="color-scheme" content="light">
   <title>Character Motion Study</title>
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="style.css?v=23">
-  <script defer src="study-data.js?v=23"></script>
-  <script defer src="trios.js?v=23"></script>
-  <script defer src="app.js?v=23"></script>
+  <link rel="stylesheet" href="style.css?v=24">
+  <script defer src="study-data.js?v=24"></script>
+  <script defer src="trios.js?v=24"></script>
+  <script defer src="app.js?v=24"></script>
 </head>
 <body>
-  <header class="site-header">
+  <header id="study-header" class="site-header" hidden>
     <div class="page-width header-inner">
       <div class="site-identity">
         <h1>Character Motion Study</h1>
@@ -37,17 +37,11 @@
       <p id="feedback" class="status" role="status"></p>
     </section>
 
-    <section id="finish-screen" class="panel standalone-panel" aria-labelledby="finish-title" hidden>
-      <h2 id="finish-title">Session complete</h2>
-      <p id="finish-message" role="status"></p>
-      <div class="button-group">
-        <button id="download-csv" class="button button-primary" type="button">Download CSV</button>
-        <button id="download-json" class="button" type="button">Download JSON</button>
-        <button id="new-session" class="button" type="button">Start a new participant</button>
-      </div>
+    <section id="finish-screen" aria-label="Completed questionnaire" hidden>
+      <button id="download-csv" class="button button-primary" type="button">Download CSV</button>
     </section>
 
-    <footer class="save-tools">
+    <footer id="save-status" class="save-tools" hidden>
       <p id="sync-status" role="status"></p>
     </footer>
     <noscript><p>This study needs JavaScript to show the clips and save answers</p></noscript>

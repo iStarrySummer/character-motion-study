@@ -1,4 +1,4 @@
-# Character Motion Study · v23
+# Character Motion Study · v24
 
 [Questionnaire](https://istarrysummer.github.io/character-motion-study/) · [Researcher statistics](https://istarrysummer.github.io/character-motion-study/stats.html) · [v20](https://istarrysummer.github.io/character-motion-study/v20/) · [v19](https://istarrysummer.github.io/character-motion-study/v19/)
 

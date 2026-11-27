@@ -190,9 +190,9 @@ function save() {
   storedLocally = write(prefix + session.id, session) && write(activeKey, session.id);
   updateStatus();
 }
-function start(fresh = false) {
+function start() {
   disposeTrio?.();
-  session = fresh ? null : read(prefix + read(activeKey));
+  session = read(prefix + read(activeKey));
   session ??= {
     id: crypto.randomUUID(), secret: crypto.randomUUID(), sides: assignSides(form.trials),
     index: 0, rows: {}, revision: 0, ack: 0, complete: false,
@@ -272,12 +272,14 @@ function choose(trial, choice) {
 
 function render() {
   disposeTrio?.();
-  $('progress-display').hidden = false;
+  $('study-header').hidden = session.complete;
+  $('save-status').hidden = session.complete;
+  $('progress-display').hidden = session.complete;
   $('trial-screen').hidden = session.complete;
   $('finish-screen').hidden = !session.complete;
   updateProgressText(session.index+1,form.total_trials);
   if (session.complete) {
-    $('finish-message').textContent = Object.keys(session.rows).length + ' answers ready to download';
+    $('download-csv').focus({preventScroll:true});
   } else {
     const trial = form.trials[session.index];
     openedAt = Date.now();
@@ -317,25 +319,22 @@ function navigate(direction) {
   render();
   void sync();
 }
-function download(ext) {
+function downloadCsv() {
   if (!session.complete || Object.keys(session.rows).length !== form.total_trials) return;
   const rows = Object.values(session.rows).sort((a,b) => a.order_index-b.order_index);
   const cell = value => '"' + String(value ?? '').replaceAll('"','""') + '"';
-  const csv = ext === 'csv';
-  const payload = csv ? '\uFEFF' + [csvFields.join(','), ...rows.map(row => csvFields.map(k => cell(row[k])).join(','))].join('\r\n') + '\r\n'
-    : JSON.stringify({session:{study_version:config.version,participant_id:session.id,complete:session.complete,preview},responses:rows},null,2);
-  const url = URL.createObjectURL(new Blob([payload],{type:csv ? 'text/csv;charset=utf-8' : 'application/json'}));
+  const lines = [csvFields.join(','), ...rows.map(row => csvFields.map(k => cell(row[k])).join(','))];
+  const payload = '\uFEFF' + lines.join('\r\n') + '\r\n';
+  const url = URL.createObjectURL(new Blob([payload], {type:'text/csv;charset=utf-8'}));
   const link = node('a');
   link.href = url;
-  link.download = 'FAVE-' + config.version + '-' + (preview?'preview-':'') + session.id + '.' + ext;
+  link.download = 'FAVE-' + config.version + '-' + (preview?'preview-':'') + session.id + '.csv';
   link.click();
   setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 $('previous').onclick = () => navigate(-1);
 $('continue').onclick = () => navigate(1);
-$('new-session').onclick = () => start(true);
-$('download-csv').onclick = () => download('csv');
-$('download-json').onclick = () => download('json');
+$('download-csv').onclick = downloadCsv;
 window.addEventListener('online',sync);
 window.addEventListener('offline',updateStatus);
 window.addEventListener('storage',event => {

@@ -398,3 +398,5 @@ main.page-width, .header-inner { max-width: 980px; }
   .watch-badge { width: 27px; height: 27px; right: 3px; top: 3px; font-size: .64rem; }
   .section-title .play-both { padding-inline: 10px; }
 }
+
+#finish-screen { display: grid; place-items: center; min-height: calc(100svh - 24px); }
