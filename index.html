@@ -6,10 +6,10 @@
   <meta name="color-scheme" content="light">
   <title>角色动作对比问卷</title>
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="style.css?v=25">
-  <script defer src="study-data.js?v=25"></script>
-  <script defer src="trios.js?v=25"></script>
-  <script defer src="app.js?v=25"></script>
+  <link rel="stylesheet" href="style.css?v=26">
+  <script defer src="study-data.js?v=26"></script>
+  <script defer src="trios.js?v=26"></script>
+  <script defer src="app.js?v=26"></script>
 </head>
 <body>
   <header id="study-header" class="site-header" hidden>
@@ -38,7 +38,11 @@
     </section>
 
     <section id="finish-screen" aria-label="问卷已完成" hidden>
-      <button id="download-csv" class="button button-primary" type="button">下载 CSV</button>
+      <div id="fireworks" aria-hidden="true"></div>
+      <div class="finish-actions">
+        <p id="finish-status" role="status" aria-live="polite" aria-atomic="true"></p>
+        <button id="download-csv" class="button button-primary" type="button">下载 CSV</button>
+      </div>
     </section>
 
     <footer id="save-status" class="save-tools" hidden>

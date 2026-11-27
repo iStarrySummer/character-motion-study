@@ -399,4 +399,19 @@ main.page-width, .header-inner { max-width: 980px; }
   .section-title .play-both { padding-inline: 10px; }
 }
 
-#finish-screen { display: grid; place-items: center; min-height: calc(100svh - 24px); }
+#finish-screen { position: relative; isolation: isolate; display: grid; place-items: center; min-height: calc(100svh - 24px); }
+
+.finish-actions { display: grid; justify-items: center; gap: 16px; text-align: center; padding: 14px; }
+#finish-status { line-height: 1.6; font-size: 1.1rem; }
+#fireworks { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: -1; }
+.spark {
+  position: absolute; left: var(--x); top: var(--y); width: 12px; height: 3px;
+  border-radius: 100%; background: linear-gradient(90deg, transparent, var(--color) 65%); opacity: 0;
+  animation: spark-burst 1.15s ease-out var(--delay) both;
+}
+@keyframes spark-burst {
+  0% { opacity: 0; transform: translate(0,0) rotate(var(--angle)) scale(.5); }
+  12%, 60% { opacity: .95; }
+  100% { opacity: 0; transform: translate(var(--dx),var(--dy)) rotate(var(--angle)) scale(.55); }
+}
+@media (prefers-reduced-motion: reduce) { .spark { animation: none; } }

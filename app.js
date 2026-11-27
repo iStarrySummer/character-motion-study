@@ -205,6 +205,17 @@ function start() {
 
 function updateStatus() {
   const count = Object.keys(session.rows).length;
+  if (session.complete) {
+    let message;
+    if (preview) message = '预览模式，可下载 CSV 查看答案';
+    else if (session.ack === session.revision) message = '全部答案已在线保存成功';
+    else if (!navigator.onLine) message = '当前未联网，请下载 CSV 备份答案';
+    else if (syncFailed) message = '未收到服务器的保存确认，请下载 CSV 备份答案';
+    else message = '正在将答案保存到服务器…';
+    const status = $('finish-status');
+    if (status.textContent !== message) status.textContent = message;
+    return;
+  }
   let message;
   if (preview) message = '预览模式：答案仅保存在此浏览器中';
   else if (!count) message = '联网后会自动保存你的匿名答案';
@@ -271,16 +282,44 @@ function choose(trial, choice) {
   void sync();
 }
 
+let fireworksTimer;
+function showFireworks() {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const layer = $('fireworks');
+  const sparks = document.createDocumentFragment();
+  const colors = ['#b54e48', '#cc9344', '#629986', '#6487ad'];
+  for (const [burst, [x, y]] of [[24, 32], [76, 36], [51, 22]].entries()) {
+    for (let i = 0; i < 32; i++) {
+      const angle = 2 * Math.PI * i / 32 + burst;
+      const radius = (i % 2 ? 50 : 82) * Math.min(1, layer.clientWidth / 580);
+      const spark = node('i', 'spark');
+      spark.style.setProperty('--x', x + '%');
+      spark.style.setProperty('--y', y + '%');
+      spark.style.setProperty('--delay', burst * 250 + 'ms');
+      spark.style.setProperty('--angle', angle + 'rad');
+      spark.style.setProperty('--color', colors[(i + burst) % colors.length]);
+      spark.style.setProperty('--dx', Math.cos(angle) * radius + 'px');
+      spark.style.setProperty('--dy', Math.sin(angle) * radius + 12 + 'px');
+      sparks.append(spark);
+    }
+  }
+  clearTimeout(fireworksTimer);
+  layer.replaceChildren(sparks);
+  fireworksTimer = setTimeout(() => layer.replaceChildren(), 1750);
+}
+
 function render() {
   disposeTrio?.();
   $('study-header').hidden = session.complete;
   $('save-status').hidden = session.complete;
   $('progress-display').hidden = session.complete;
   $('trial-screen').hidden = session.complete;
+  const enteringFinish = session.complete && $('finish-screen').hidden;
   $('finish-screen').hidden = !session.complete;
   updateProgressText(session.index+1,form.total_trials);
   if (session.complete) {
     $('download-csv').focus({preventScroll:true});
+    if (enteringFinish) showFireworks();
   } else {
     const trial = form.trials[session.index];
     openedAt = Date.now();
@@ -331,6 +370,7 @@ function downloadCsv() {
   link.href = url;
   link.download = 'FAVE-' + config.version + '-' + (preview?'preview-':'') + session.id + '.csv';
   link.click();
+  showFireworks();
   setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 $('previous').onclick = () => navigate(-1);
