@@ -7,9 +7,7 @@ const preview = ['1', 'id'].includes(new URLSearchParams(location.search).get('p
 const prefix = 'fave53-v21:' + (preview ? 'preview:' : 'study:');
 const activeKey = prefix + 'active';
 const collector = 'https://fave-motion-results.helpfulchick2.chatgpt.site/api/responses';
-const csvFields = ['study_version','participant_id','form_id','order_index','item_id','round','task',
-  'character','scene_id','audio_comparison','lora_weights','left_setting','right_setting',
-  'choice_raw','picked_setting','rt_ms','submitted_at'];
+const inWeChat = /MicroMessenger/i.test(navigator.userAgent);
 let session;
 let disposeTrio;
 let openedAt;
@@ -207,10 +205,10 @@ function updateStatus() {
   const count = Object.keys(session.rows).length;
   if (session.complete) {
     let message;
-    if (preview) message = '预览模式，可下载 CSV 查看答案';
+    if (preview) message = '预览模式，可导出答卷查看答案';
     else if (session.ack === session.revision) message = '全部答案已在线保存成功';
-    else if (!navigator.onLine) message = '当前未联网，请下载 CSV 备份答案';
-    else if (syncFailed) message = '未收到服务器的保存确认，请下载 CSV 备份答案';
+    else if (!navigator.onLine) message = '当前未联网，请备份答卷';
+    else if (syncFailed) message = '未收到服务器的保存确认，请备份答卷';
     else message = '正在将答案保存到服务器…';
     const status = $('finish-status');
     if (status.textContent !== message) status.textContent = message;
@@ -318,7 +316,8 @@ function render() {
   $('finish-screen').hidden = !session.complete;
   updateProgressText(session.index+1,form.total_trials);
   if (session.complete) {
-    $('download-csv').focus({preventScroll:true});
+    if (inWeChat) prepareWeChatExport();
+    $(inWeChat ? 'copy-link' : 'download-csv').focus({preventScroll:true});
     if (enteringFinish) showFireworks();
   } else {
     const trial = form.trials[session.index];
@@ -359,19 +358,68 @@ function navigate(direction) {
   render();
   void sync();
 }
+function completedRows() {
+  if (!session.complete || Object.keys(session.rows).length !== form.total_trials) return null;
+  return Object.values(session.rows).sort((a,b) => a.order_index-b.order_index)
+    .map(row => csvFields.map(key => row[key] ?? null));
+}
+
+function answerFilename() {
+  return 'FAVE-' + config.version + '-' + (preview ? 'preview-' : '') + session.id + '.csv';
+}
+
 function downloadCsv() {
-  if (!session.complete || Object.keys(session.rows).length !== form.total_trials) return;
-  const rows = Object.values(session.rows).sort((a,b) => a.order_index-b.order_index);
-  const cell = value => '"' + String(value ?? '').replaceAll('"','""') + '"';
-  const lines = [csvFields.join(','), ...rows.map(row => csvFields.map(k => cell(row[k])).join(','))];
-  const payload = '\uFEFF' + lines.join('\r\n') + '\r\n';
-  const url = URL.createObjectURL(new Blob([payload], {type:'text/csv;charset=utf-8'}));
-  const link = node('a');
-  link.href = url;
-  link.download = 'FAVE-' + config.version + '-' + (preview?'preview-':'') + session.id + '.csv';
-  link.click();
+  const rows = completedRows();
+  if (!rows) return;
+  downloadAnswerFile(answerFile(answerFilename(), rows));
   showFireworks();
-  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+
+async function copyBackup(value, label, success) {
+  const field = $('manual-copy');
+  const status = $('backup-status');
+  field.hidden = true;
+  try {
+    await navigator.clipboard.writeText(value);
+    status.textContent = success;
+  } catch {
+    field.value = value;
+    field.setAttribute('aria-label', label);
+    field.hidden = false;
+    field.focus();
+    field.select();
+    status.textContent = '请长按下方文字，选择「全选」并复制' + label;
+  }
+}
+
+function prepareWeChatExport() {
+  const rows = completedRows();
+  if (!rows) return;
+  const name = answerFilename();
+  const bytes = new TextEncoder().encode(JSON.stringify({name, rows}));
+  let link = answerLink(bytes, 'raw');
+  if (typeof CompressionStream === 'function' && typeof DecompressionStream === 'function') {
+    const stream = new Blob([bytes]).stream().pipeThrough(new CompressionStream('gzip'));
+    new Response(stream).arrayBuffer().then(buffer => {
+      link = answerLink(new Uint8Array(buffer), 'gz');
+    }).catch(() => { /* The uncompressed link is already available. */ });
+  }
+  $('download-csv').hidden = true;
+  $('wechat-export').hidden = false;
+  $('copy-link').onclick = () => copyBackup(link, '下载链接', '链接已复制，请粘贴到手机浏览器的地址栏');
+  $('copy-answers').onclick = () => copyBackup(answerCsv(rows), '答卷内容', '全部答案已复制，可粘贴到微信聊天中备份');
+  if (typeof navigator.canShare === 'function' && typeof navigator.share === 'function') {
+    const data = {files:[answerFile(name, rows)]};
+    if (navigator.canShare(data)) {
+      $('share-file').hidden = false;
+      $('share-file').onclick = async () => {
+        try { await navigator.share(data); }
+        catch (error) {
+          if (error.name !== 'AbortError') $('backup-status').textContent = '请复制下载链接，或复制答卷内容';
+        }
+      };
+    }
+  }
 }
 $('previous').onclick = () => navigate(-1);
 $('continue').onclick = () => navigate(1);

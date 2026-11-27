@@ -415,3 +415,8 @@ main.page-width, .header-inner { max-width: 980px; }
   100% { opacity: 0; transform: translate(var(--dx),var(--dy)) rotate(var(--angle)) scale(.55); }
 }
 @media (prefers-reduced-motion: reduce) { .spark { animation: none; } }
+
+.export-page { display: grid; min-height: 95vh; place-items: center; }
+#wechat-export { display: grid; justify-items: center; gap: 12px; max-width: 28rem; }
+#wechat-export > p { text-wrap: pretty; }
+#manual-copy { width: 100%; min-width: 0; font-size: 16px; }

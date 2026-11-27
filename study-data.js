@@ -1,7 +1,7 @@
 window.FAVE_STUDY = {
   "config": {
     "study_name": "Character Motion Study",
-    "version": "v26",
+    "version": "v27",
     "video_rules": {
       "mute_all_videos": true,
       "require_uniform_resolution": "320p"

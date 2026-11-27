@@ -6,10 +6,11 @@
   <meta name="color-scheme" content="light">
   <title>角色动作对比问卷</title>
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="style.css?v=26">
-  <script defer src="study-data.js?v=26"></script>
-  <script defer src="trios.js?v=26"></script>
-  <script defer src="app.js?v=26"></script>
+  <link rel="stylesheet" href="style.css?v=27">
+  <script defer src="study-data.js?v=27"></script>
+  <script defer src="trios.js?v=27"></script>
+  <script defer src="answer-export.js?v=27"></script>
+  <script defer src="app.js?v=27"></script>
 </head>
 <body>
   <header id="study-header" class="site-header" hidden>
@@ -42,6 +43,14 @@
       <div class="finish-actions">
         <p id="finish-status" role="status" aria-live="polite" aria-atomic="true"></p>
         <button id="download-csv" class="button button-primary" type="button">下载 CSV</button>
+        <div id="wechat-export" hidden>
+          <p>要保存 CSV，请复制下载链接，粘贴到手机浏览器的地址栏。链接中含有你的答案</p>
+          <button id="copy-link" class="button button-primary" type="button">复制下载链接</button>
+          <button id="share-file" class="button" type="button" hidden>分享 CSV 文件</button>
+          <button id="copy-answers" class="button" type="button">复制答卷内容</button>
+          <textarea id="manual-copy" rows="4" readonly hidden></textarea>
+          <p id="backup-status" class="status" role="status"></p>
+        </div>
       </div>
     </section>
 
