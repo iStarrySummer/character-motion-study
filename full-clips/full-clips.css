@@ -1,0 +1,17 @@
+.trio-frame { aspect-ratio: 1; }
+.clip-ended {
+  position: absolute; right: 6px; bottom: 6px; padding: 2px 6px;
+  border-radius: 4px; background: #222c; color: white; font-size: .8rem;
+}
+#download-csv { display: inline-grid; place-items: center; text-decoration: none; }
+#export-help { width: min(100%, 34rem); min-width: 0; text-align: left; }
+#export-help summary { cursor: pointer; color: var(--accent); text-align: center; }
+#export-help label { display: block; margin-top: 14px; }
+#export-help :is(textarea,input) {
+  display: block; width: 100%; margin: 6px 0; padding: 8px;
+  border: 1px solid var(--line-strong); border-radius: 4px; font: inherit;
+  -webkit-user-select: text; user-select: text;
+}
+#copy-status { margin-top: 6px; }
+.finish-actions { min-width: 0; max-width: 100%; }
+@media(max-width:520px) { .study-progress { width: 65px; } }

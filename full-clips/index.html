@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>完整视频复测</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="../style.css?v=26">
+  <script defer src="study-data.js?v=1"></script>
+  <link rel="stylesheet" href="full-clips.css?v=1">
+  <script defer src="answer-file.js?v=1"></script>
+  <script defer src="app.js?v=1"></script>
+</head>
+<body>
+  <header id="study-header" class="site-header" hidden>
+    <div class="page-width header-inner">
+      <div class="site-identity">
+        <h1>完整视频复测</h1>
+      </div>
+      <div id="progress-display" hidden>
+        <progress id="progress" class="study-progress" aria-label="答题进度"></progress>
+        <span id="progress-count" aria-hidden="true"></span>
+      </div>
+    </div>
+  </header>
+
+  <main class="page-width">
+    <section id="trial-screen" class="trial-layout" aria-label="当前题目" hidden>
+      <section id="candidates" class="panel" aria-label="待比较的视频"></section>
+      <section class="panel response-panel" aria-label="你的选择">
+        <div id="answers"></div>
+      </section>
+      <nav class="question-nav" aria-label="题目导航">
+        <button id="previous" class="button" type="button">上一题</button>
+        <button id="continue" class="button button-primary" type="button" disabled>下一题</button>
+      </nav>
+      <p id="feedback" class="status" role="status"></p>
+    </section>
+
+    <section id="finish-screen" aria-label="问卷已完成" hidden>
+      <div id="fireworks" aria-hidden="true"></div>
+      <div class="finish-actions">
+        <p id="finish-status" role="status" aria-live="polite" aria-atomic="true"></p>
+        <a id="download-csv" class="button button-primary" href="#" referrerpolicy="no-referrer">下载 CSV</a>
+        <details id="export-help">
+          <summary>微信内保存答卷</summary>
+          <div id="link-backup" hidden>
+            <label for="csv-url">若微信没有弹出下载，请复制此链接，用手机浏览器打开</label>
+            <input id="csv-url" type="url" readonly spellcheck="false">
+            <button class="button" id="copy-url" type="button">复制下载链接</button>
+          </div>
+          <label for="csv-text">也可以复制下方的完整答卷，发送给研究者</label>
+          <textarea id="csv-text" readonly rows="4" spellcheck="false"></textarea>
+          <button class="button" id="copy-csv" type="button">复制 CSV 内容</button>
+          <p id="copy-status" role="status"></p>
+        </details>
+      </div>
+    </section>
+
+    <footer id="save-status" class="save-tools" hidden>
+      <p id="sync-status" role="status"></p>
+    </footer>
+    <noscript><p>请启用 JavaScript，以便播放视频并保存答案</p></noscript>
+  </main>
+</body>
+</html>
