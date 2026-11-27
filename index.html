@@ -1,50 +1,50 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light">
-  <title>Character Motion Study</title>
+  <title>角色动作对比问卷</title>
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="style.css?v=24">
-  <script defer src="study-data.js?v=24"></script>
-  <script defer src="trios.js?v=24"></script>
-  <script defer src="app.js?v=24"></script>
+  <link rel="stylesheet" href="style.css?v=25">
+  <script defer src="study-data.js?v=25"></script>
+  <script defer src="trios.js?v=25"></script>
+  <script defer src="app.js?v=25"></script>
 </head>
 <body>
   <header id="study-header" class="site-header" hidden>
     <div class="page-width header-inner">
       <div class="site-identity">
-        <h1>Character Motion Study</h1>
+        <h1>角色动作对比问卷</h1>
       </div>
       <div id="progress-display" hidden>
-        <progress id="progress" class="study-progress" aria-label="Question progress"></progress>
+        <progress id="progress" class="study-progress" aria-label="答题进度"></progress>
         <span id="progress-count" aria-hidden="true"></span>
       </div>
     </div>
   </header>
 
   <main class="page-width">
-    <section id="trial-screen" class="trial-layout" aria-label="Study question" hidden>
-      <section id="candidates" class="panel" aria-label="Videos to judge"></section>
-      <section class="panel response-panel" aria-label="Your answer">
+    <section id="trial-screen" class="trial-layout" aria-label="当前题目" hidden>
+      <section id="candidates" class="panel" aria-label="待比较的视频"></section>
+      <section class="panel response-panel" aria-label="你的选择">
         <div id="answers"></div>
       </section>
-      <nav class="question-nav" aria-label="Question navigation">
-        <button id="previous" class="button" type="button">Previous</button>
-        <button id="continue" class="button button-primary" type="button" disabled>Next</button>
+      <nav class="question-nav" aria-label="题目导航">
+        <button id="previous" class="button" type="button">上一题</button>
+        <button id="continue" class="button button-primary" type="button" disabled>下一题</button>
       </nav>
       <p id="feedback" class="status" role="status"></p>
     </section>
 
-    <section id="finish-screen" aria-label="Completed questionnaire" hidden>
-      <button id="download-csv" class="button button-primary" type="button">Download CSV</button>
+    <section id="finish-screen" aria-label="问卷已完成" hidden>
+      <button id="download-csv" class="button button-primary" type="button">下载 CSV</button>
     </section>
 
     <footer id="save-status" class="save-tools" hidden>
       <p id="sync-status" role="status"></p>
     </footer>
-    <noscript><p>This study needs JavaScript to show the clips and save answers</p></noscript>
+    <noscript><p>请启用 JavaScript，以便播放视频并保存答案</p></noscript>
   </main>
 </body>
 </html>

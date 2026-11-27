@@ -1,8 +1,10 @@
 'use strict';
 const $ = id => document.getElementById(id);
-const names = {setting_01:'Original audio', setting_03:'TTS-E', setting_05:'TTS-N', setting_07:'LoRA on'};
+const characters = {Penny:'佩妮', Sheldon:'谢尔顿', Leonard:'莱纳德'};
+const characterName = name => characters[name] || name;
+const names = {setting_01:'原始音频', setting_03:'TTS-E', setting_05:'TTS-N', setting_07:'启用 LoRA'};
 function label(t,side) {
-  if (t.task === 'lora') return side === 'base' ? 'LoRA off' : 'LoRA on ('+t.lora_weights+')';
+  if (t.task === 'lora') return side === 'base' ? '关闭 LoRA' : '启用 LoRA（'+characterName(t.lora_weights)+'的权重）';
   return names[t[side+'_setting']] || t[side+'_setting'];
 }
 function renderRow(t,first) {
@@ -22,7 +24,13 @@ async function load() {
   try {
     const response=await fetch('https://fave-motion-results.helpfulchick2.chatgpt.site/api/stats',{
       headers:{Authorization:'Bearer '+$('key').value.trim()},cache:'no-store',signal:AbortSignal.timeout(15000)});
-    if (response.status===401) throw Error('Check the researcher key and try again.');
+    if (response.status===401) {
+      if (request===lastRequest) {
+        $('results').hidden=true;
+        $('status').textContent='密钥有误，请重新输入';
+      }
+      return;
+    }
     if (!response.ok) throw Error('Could not load the results.');
     const data=await response.json();
     if (request!==lastRequest) return;
@@ -32,17 +40,20 @@ async function load() {
       const g=groups.get(key) || {...t,base:0,test:0};g.base+=t.base;g.test+=t.test;groups.set(key,g);
     }
     const answers=data.items.reduce((sum,t)=>sum+t.base+t.test,0);
-    $('totals').textContent=data.participants+' started answering · '+data.completed+' finished · '+answers+' answers';
+    $('totals').textContent=data.participants+' 人已开始答题，'+data.completed+' 人已完成，共收到 '+answers+' 条答案';
     $('groups').replaceChildren(...Array.from(groups.values()).sort((a,b)=>a.character.localeCompare(b.character)||a.task.localeCompare(b.task))
-      .map(t=>renderRow(t,[t.character,t.task==='lora'?'LoRA':'Audio'])));
-    $('items').replaceChildren(...data.items.map(t=>renderRow(t,[t.order_index,t.character,t.scene_id])));
+      .map(t=>renderRow(t,[characterName(t.character),t.task==='lora'?'LoRA':'音频'])));
+    $('items').replaceChildren(...data.items.map(t=>renderRow(t,[t.order_index,characterName(t.character),t.scene_id])));
     $('results').hidden=false;
-    $('status').textContent='Updated '+new Date().toLocaleTimeString()+'. Refreshes every 30 seconds.';
+    $('status').textContent='上次更新：'+new Date().toLocaleTimeString('zh-CN')+'，每 30 秒自动刷新';
     refresh=setTimeout(load,30000);
-  } catch(error) {
+  } catch {
     if (request!==lastRequest) return;
     $('results').hidden=true;
-    $('status').textContent=error.message;
+    $('status').textContent='未能加载结果，请检查网络后重试';
   }
 }
 $('access').onsubmit=event=>{event.preventDefault();load();};
+
+$('key').oninvalid = () => $('key').setCustomValidity('请输入研究者密钥');
+$('key').oninput = () => $('key').setCustomValidity('');

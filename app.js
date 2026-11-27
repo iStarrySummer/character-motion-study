@@ -56,11 +56,11 @@ function showTrio(trial) {
 
   const candidatePanel = $('candidates');
   candidatePanel.replaceChildren();
-  candidatePanel.setAttribute('aria-label', 'Reference and candidate videos');
+  candidatePanel.setAttribute('aria-label', '参考视频和候选视频');
   const title = node('header', 'section-title');
-  title.append(node('h2', '', 'Watch the head, eyebrows, and mouth'));
+  title.append(node('h2', '', '请观察头部、眉毛和嘴巴的动作'));
   candidatePanel.append(title);
-  const control = node('button', 'play-button play-both', 'Play all');
+  const control = node('button', 'play-button play-both', '全部播放');
   control.type = 'button';
   title.append(control);
   const displays = [];
@@ -82,7 +82,7 @@ function showTrio(trial) {
     const caption = node('div', 'video-label', label);
     if (side) {
       caption.classList.add('candidate-label');
-      caption.replaceChildren('Candidate ', node('span', 'candidate-key', side));
+      caption.replaceChildren('候选视频 ', node('span', 'candidate-key', side));
     }
     const frame = node('div', 'media-frame trio-frame');
     const canvas = node('canvas');
@@ -93,7 +93,7 @@ function showTrio(trial) {
     displays.push({context: canvas.getContext('2d'), column});
     const ring = node('span', 'watch-badge', percent + '%');
     ring.setAttribute('role', 'progressbar');
-    ring.setAttribute('aria-label', label + ' watched');
+    ring.setAttribute('aria-label', label + '的观看进度');
     ring.setAttribute('aria-valuenow', percent);
     ring.style.setProperty('--watched', ring.textContent);
     rings.push(ring);
@@ -106,9 +106,9 @@ function showTrio(trial) {
   const row = node('div', 'trio-row');
   const swap = session.sides[trial.item_id];
   row.append(
-    card('Candidate A', swap ? 2 : 1, 'A'),
-    card('GT reference', 0),
-    card('Candidate B', swap ? 1 : 2, 'B')
+    card('候选视频 A', swap ? 2 : 1, 'A'),
+    card('GT 参考视频', 0),
+    card('候选视频 B', swap ? 1 : 2, 'B')
   );
   candidatePanel.append(row, video);
 
@@ -127,7 +127,7 @@ function showTrio(trial) {
     frameRequest = nativeFrames ? video.requestVideoFrameCallback(nextFrame) : requestAnimationFrame(nextFrame);
   }
   function setButton() {
-    control.textContent = video.paused ? 'Play all' : 'Pause all';
+    control.textContent = video.paused ? '全部播放' : '全部暂停';
     control.dataset.state = video.paused ? 'play' : 'pause';
   }
   function playAll() {
@@ -156,7 +156,7 @@ function showTrio(trial) {
     playAll();
   });
   video.addEventListener('error', () => {
-    if (live) $('feedback').textContent = 'The comparison video could not be loaded';
+    if (live) $('feedback').textContent = '视频加载失败，请检查网络后刷新页面';
   });
   disposeTrio = () => {
     live = false;
@@ -176,8 +176,9 @@ function updateProgressText(position, total) {
   const bar = $('progress');
   bar.max = total;
   bar.value = position;
-  $('progress-count').textContent = 'Question ' + position + ' / ' + total;
-  bar.setAttribute('aria-valuetext', 'Question ' + position + ' of ' + total);
+  const progress = '第 ' + position + ' 题，共 ' + total + ' 题';
+  $('progress-count').textContent = progress;
+  bar.setAttribute('aria-valuetext', progress);
 }
 
 function read(key) {
@@ -205,12 +206,12 @@ function start() {
 function updateStatus() {
   const count = Object.keys(session.rows).length;
   let message;
-  if (preview) message = 'Preview · answers stay in this browser';
-  else if (!count) message = 'Anonymous answers save online when connected.';
-  else if (session.ack === session.revision) message = count + ' of ' + form.total_trials + ' answers saved online';
-  else if (!navigator.onLine || syncFailed) message = 'Waiting for a connection to save answers online.';
-  else message = 'Saving answers online…';
-  if (!storedLocally) message += ' Browser storage is unavailable. Keep this tab open until you finish.';
+  if (preview) message = '预览模式：答案仅保存在此浏览器中';
+  else if (!count) message = '联网后会自动保存你的匿名答案';
+  else if (session.ack === session.revision) message = '已在线保存 ' + count + ' 题，共 ' + form.total_trials + ' 题';
+  else if (!navigator.onLine || syncFailed) message = '正在等待网络连接，连上后会自动保存答案';
+  else message = '正在保存答案…';
+  if (!storedLocally) message += ' 当前浏览器无法保存进度，请在完成前保持此页面打开';
   $('sync-status').textContent = message;
 }
 
@@ -287,9 +288,9 @@ function render() {
     showTrio(trial);
     const question = config.questions.PartA_Pairwise.choice;
     const field = node('fieldset','answer-group');
-    field.append(node('legend','',question.label_en));
+    field.append(node('legend','',question.label_zh));
     const choices = node('div','options');
-    for (const {value, label_en} of question.options) {
+    for (const {value, label_zh} of question.options) {
       const option = node('label','option');
       const input = node('input');
       input.type = 'radio';
@@ -297,14 +298,14 @@ function render() {
       input.value = value;
       input.checked = session.rows[trial.item_id]?.choice_raw === value;
       input.addEventListener('change', () => choose(trial,value));
-      option.append(input,node('span','',label_en));
+      option.append(input,node('span','',label_zh));
       choices.append(option);
     }
     field.append(choices);
     $('answers').replaceChildren(field);
     $('previous').disabled = session.index === 0;
     $('continue').disabled = !session.rows[trial.item_id];
-    $('continue').textContent = session.index === form.total_trials-1 ? 'Finish' : 'Next';
+    $('continue').textContent = session.index === form.total_trials-1 ? '完成' : '下一题';
   }
   updateStatus();
   window.scrollTo(0,0);
