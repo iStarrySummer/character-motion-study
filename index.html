@@ -6,11 +6,11 @@
   <meta name="color-scheme" content="light">
   <title>角色动作对比问卷</title>
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="style.css?v=27">
-  <script defer src="study-data.js?v=27"></script>
-  <script defer src="trios.js?v=27"></script>
-  <script defer src="answer-export.js?v=27"></script>
-  <script defer src="app.js?v=27"></script>
+  <link rel="stylesheet" href="style.css?v=28">
+  <script defer src="study-data.js?v=28"></script>
+  <script defer src="trios.js?v=28"></script>
+  <script defer src="answer-export.js?v=28"></script>
+  <script defer src="app.js?v=28"></script>
 </head>
 <body>
   <header id="study-header" class="site-header" hidden>
@@ -51,9 +51,16 @@
           <textarea id="manual-copy" rows="4" readonly hidden></textarea>
           <p id="backup-status" class="status" role="status"></p>
         </div>
+        <button id="repeat" class="button" type="button">再答一份</button>
       </div>
     </section>
 
+    <details id="history" hidden>
+      <summary>本机以前的答卷</summary>
+      <ul id="history-list"></ul>
+      <textarea id="history-copy" aria-label="下载链接" rows="3" readonly hidden></textarea>
+      <p id="history-status" role="status"></p>
+    </details>
     <footer id="save-status" class="save-tools" hidden>
       <p id="sync-status" role="status"></p>
     </footer>

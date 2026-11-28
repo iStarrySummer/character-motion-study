@@ -22,7 +22,7 @@ async function load() {
   const request=++lastRequest;
   clearTimeout(refresh);
   try {
-    const response=await fetch('https://fave-motion-results.helpfulchick2.chatgpt.site/api/stats',{
+    const response=await fetch('https://fave-motion-results.helpfulchick2.chatgpt.site/api/v28/stats',{
       headers:{Authorization:'Bearer '+$('key').value.trim()},cache:'no-store',signal:AbortSignal.timeout(15000)});
     if (response.status===401) {
       if (request===lastRequest) {
@@ -40,7 +40,7 @@ async function load() {
       const g=groups.get(key) || {...t,base:0,test:0};g.base+=t.base;g.test+=t.test;groups.set(key,g);
     }
     const answers=data.items.reduce((sum,t)=>sum+t.base+t.test,0);
-    $('totals').textContent=data.participants+' 人已开始答题，'+data.completed+' 人已完成，共收到 '+answers+' 条答案';
+    $('totals').textContent=data.participants+' 份答卷已开始，'+data.completed+' 份已完成，共收到 '+answers+' 条答案';
     $('groups').replaceChildren(...Array.from(groups.values()).sort((a,b)=>a.character.localeCompare(b.character)||a.task.localeCompare(b.task))
       .map(t=>renderRow(t,[characterName(t.character),t.task==='lora'?'LoRA':'音频'])));
     $('items').replaceChildren(...data.items.map(t=>renderRow(t,[t.order_index,characterName(t.character),t.scene_id])));

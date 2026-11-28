@@ -1,6 +1,6 @@
 {
   "study_name": "Character Motion Study",
-  "version": "v27",
+  "version": "v28",
   "video_rules": {
     "mute_all_videos": true,
     "require_uniform_resolution": "320p"
@@ -13,7 +13,7 @@
     "setting_07": "setting_07__tts_original_guided__lora_on__noprompt"
   },
   "randomization_rules": {
-    "candidate_side": "Randomize within each comparison type, with a 7/8 split for the two sides."
+    "candidate_side": "Odd questions follow the selected CSV order. Even questions reverse it."
   },
   "questions": {
     "PartA_Pairwise": {

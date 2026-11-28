@@ -3,10 +3,11 @@
 const {config, form} = window.FAVE_STUDY;
 const $ = id => document.getElementById(id);
 const preview = ['1', 'id'].includes(new URLSearchParams(location.search).get('preview'));
-// Keep v21 sessions and their queued uploads across this layout update.
-const prefix = 'fave53-v21:' + (preview ? 'preview:' : 'study:');
+const mode = preview ? 'preview:' : 'study:';
+const prefix = 'fave53-v28:' + mode;
+const unsaved = new Map();
 const activeKey = prefix + 'active';
-const collector = 'https://fave-motion-results.helpfulchick2.chatgpt.site/api/responses';
+const collector = 'https://fave-motion-results.helpfulchick2.chatgpt.site/api/v28/responses';
 const inWeChat = /MicroMessenger/i.test(navigator.userAgent);
 let session;
 let disposeTrio;
@@ -20,28 +21,6 @@ function node(tag, classes = '', text = '') {
   if (classes) element.className = classes;
   if (text) element.textContent = text;
   return element;
-}
-
-function shuffled(items) {
-  const result = items.slice();
-  const random = new Uint32Array(result.length);
-  crypto.getRandomValues(random);
-  for (let index = result.length - 1; index > 0; index--) {
-    const other = Math.floor(random[index] / 2 ** 32 * (index + 1));
-    [result[index], result[other]] = [result[other], result[index]];
-  }
-  return result;
-}
-
-function assignSides(trials) {
-  const result = {};
-  for (const task of ['audio', 'lora']) {
-    const items = shuffled(trials.filter(trial => trial.task === task));
-    const oneSide = items.length % 2 ? shuffled([false, true])[0] : false;
-    const testOnLeft = Math.floor(items.length / 2) + Number(oneSide);
-    items.forEach((trial, index) => { result[trial.item_id] = index < testOnLeft; });
-  }
-  return result;
 }
 
 function showTrio(trial) {
@@ -102,7 +81,7 @@ function showTrio(trial) {
     return item;
   }
   const row = node('div', 'trio-row');
-  const swap = session.sides[trial.item_id];
+  const swap = trial.order_index % 2 === 0;
   row.append(
     card('候选视频 A', swap ? 2 : 1, 'A'),
     card('GT 参考视频', 0),
@@ -186,17 +165,27 @@ function write(key, value) {
   try { localStorage.setItem(key, JSON.stringify(value)); return true; } catch { return false; }
 }
 function save() {
-  storedLocally = write(prefix + session.id, session) && write(activeKey, session.id);
+  storedLocally = write(prefix + session.id, session);
+  if (storedLocally) unsaved.delete(session.id);
+  else unsaved.set(session.id, session);
   updateStatus();
 }
-function start() {
+function start(newSheet = false) {
   disposeTrio?.();
-  session = read(prefix + read(activeKey));
-  session ??= {
-    id: crypto.randomUUID(), secret: crypto.randomUUID(), sides: assignSides(form.trials),
+  session = (!newSheet && read(prefix + read(activeKey))) || {
+    id: crypto.randomUUID(), secret: crypto.randomUUID(),
     index: 0, rows: {}, revision: 0, ack: 0, complete: false,
   };
   save();
+  storedLocally = write(activeKey, session.id) && storedLocally;
+  $('backup-status').textContent = '';
+  $('manual-copy').hidden = true;
+  $('manual-copy').value = '';
+  $('history-status').textContent = '';
+  $('history-copy').hidden = true;
+  $('history-copy').value = '';
+  $('history').open = false;
+  updateHistory();
   render();
   sync();
 }
@@ -228,7 +217,7 @@ async function sync() {
   if (syncing || preview || !navigator.onLine) { updateStatus(); return; }
   syncing = true;
   try {
-    const pending = new Set([session.id]);
+    const pending = new Set([session.id, ...unsaved.keys()]);
     // A second participant can start on this device while the first is offline.
     try {
       for (let i = 0; i < localStorage.length; i++) {
@@ -237,7 +226,7 @@ async function sync() {
       }
     } catch { /* The active session can still sync from memory. */ }
     for (const id of pending) {
-      const record = id === session.id ? session : read(prefix + id);
+      const record = id === session.id ? session : unsaved.get(id) || read(prefix + id);
       if (!record || record.revision <= record.ack) continue;
       const revision = record.revision;
       const answers = Object.values(record.rows).map(row => ({
@@ -245,11 +234,11 @@ async function sync() {
       }));
       const response = await fetch(collector, {method:'POST', credentials:'omit',
         headers:{'Content-Type':'application/json'}, signal:AbortSignal.timeout(12000),
-        body:JSON.stringify({version:'v21', id, secret:record.secret, revision, answers, complete:record.complete})});
+        body:JSON.stringify({version:config.version, id, secret:record.secret, revision, answers, complete:record.complete})});
       if (!response.ok) throw Error('Submission failed');
       const saved = await response.json();
       if (saved.id !== id || saved.revision !== revision) throw Error('Missing receipt');
-      const latest = session.id === id ? session : read(prefix + id);
+      const latest = session.id === id ? session : unsaved.get(id) || read(prefix + id);
       if (latest) {
         latest.ack = Math.max(latest.ack, revision);
         if (latest === session) save(); else write(prefix + id, latest);
@@ -262,7 +251,7 @@ async function sync() {
 }
 
 function choose(trial, choice) {
-  const swap = session.sides[trial.item_id];
+  const swap = trial.order_index % 2 === 0;
   const left = swap ? trial.test_setting : trial.base_setting;
   const right = swap ? trial.base_setting : trial.test_setting;
   const now = Date.now();
@@ -337,6 +326,7 @@ function render() {
       input.checked = session.rows[trial.item_id]?.choice_raw === value;
       input.addEventListener('change', () => choose(trial,value));
       option.append(input,node('span','',label_zh));
+      if (value === 'B') choices.append($('continue'));
       choices.append(option);
     }
     field.append(choices);
@@ -358,14 +348,14 @@ function navigate(direction) {
   render();
   void sync();
 }
-function completedRows() {
-  if (!session.complete || Object.keys(session.rows).length !== form.total_trials) return null;
-  return Object.values(session.rows).sort((a,b) => a.order_index-b.order_index)
+function completedRows(record = session) {
+  if (!record.complete || Object.keys(record.rows).length !== form.total_trials) return null;
+  return Object.values(record.rows).sort((a,b) => a.order_index-b.order_index)
     .map(row => csvFields.map(key => row[key] ?? null));
 }
 
-function answerFilename() {
-  return 'FAVE-' + config.version + '-' + (preview ? 'preview-' : '') + session.id + '.csv';
+function answerFilename(record = session) {
+  return 'FAVE-' + config.version + '-' + (preview ? 'preview-' : '') + record.id + '.csv';
 }
 
 function downloadCsv() {
@@ -375,9 +365,7 @@ function downloadCsv() {
   showFireworks();
 }
 
-async function copyBackup(value, label, success) {
-  const field = $('manual-copy');
-  const status = $('backup-status');
+async function copyBackup(value, label, success, field = $('manual-copy'), status = $('backup-status')) {
   field.hidden = true;
   try {
     await navigator.clipboard.writeText(value);
@@ -392,10 +380,7 @@ async function copyBackup(value, label, success) {
   }
 }
 
-function prepareWeChatExport() {
-  const rows = completedRows();
-  if (!rows) return;
-  const name = answerFilename();
+function prepareDownloadLink(name, rows) {
   const bytes = new TextEncoder().encode(JSON.stringify({name, rows}));
   let link = answerLink(bytes, 'raw');
   if (typeof CompressionStream === 'function' && typeof DecompressionStream === 'function') {
@@ -404,9 +389,17 @@ function prepareWeChatExport() {
       link = answerLink(new Uint8Array(buffer), 'gz');
     }).catch(() => { /* The uncompressed link is already available. */ });
   }
+  return () => link;
+}
+
+function prepareWeChatExport() {
+  const rows = completedRows();
+  if (!rows) return;
+  const name = answerFilename();
+  const getLink = prepareDownloadLink(name, rows);
   $('download-csv').hidden = true;
   $('wechat-export').hidden = false;
-  $('copy-link').onclick = () => copyBackup(link, '下载链接', '链接已复制，请粘贴到手机浏览器的地址栏');
+  $('copy-link').onclick = () => copyBackup(getLink(), '下载链接', '链接已复制，请粘贴到手机浏览器的地址栏');
   $('copy-answers').onclick = () => copyBackup(answerCsv(rows), '答卷内容', '全部答案已复制，可粘贴到微信聊天中备份');
   if (typeof navigator.canShare === 'function' && typeof navigator.share === 'function') {
     const data = {files:[answerFile(name, rows)]};
@@ -421,12 +414,61 @@ function prepareWeChatExport() {
     }
   }
 }
+function updateHistory() {
+  const saved = new Map(unsaved);
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key.startsWith(prefix) && key !== activeKey && !saved.has(key.slice(prefix.length))) {
+        const record = read(key);
+        if (record) saved.set(record.id, record);
+      }
+    }
+  } catch { /* Records held in memory are still available on this page. */ }
+  const list = $('history-list');
+  list.replaceChildren();
+  for (const record of saved.values()) {
+    if (!record.complete || record.id === session.id) continue;
+    const rows = completedRows(record);
+    if (!rows) continue;
+    const name = answerFilename(record);
+    const last = rows[rows.length - 1][csvFields.indexOf('submitted_at')];
+    const item = node('li');
+    const button = node('button', 'button', new Date(last).toLocaleString('zh-CN') +
+      ' · ' + record.id.slice(0,8) + (inWeChat ? ' 复制下载链接' : ' 下载 CSV'));
+    button.type = 'button';
+    if (inWeChat) {
+      const getLink = prepareDownloadLink(name, rows);
+      button.onclick = () => copyBackup(getLink(), '下载链接', '链接已复制，请粘贴到手机浏览器的地址栏',
+        $('history-copy'), $('history-status'));
+    } else button.onclick = () => downloadAnswerFile(answerFile(name, rows));
+    item.append(button);
+    list.append(item);
+  }
+  const legacy = read('fave53-v21:' + mode + 'active');
+  if (legacy) {
+    const link = node('a', '', '打开旧版 30 题问卷');
+    link.href = 'v27/' + (preview ? '?preview=1' : '');
+    const item = node('li');
+    item.append(link);
+    list.append(item);
+  }
+  $('history').hidden = !list.childElementCount;
+}
+
+$('repeat').onclick = () => {
+  if (session.complete) start(true);
+};
 $('previous').onclick = () => navigate(-1);
 $('continue').onclick = () => navigate(1);
 $('download-csv').onclick = downloadCsv;
 window.addEventListener('online',sync);
 window.addEventListener('offline',updateStatus);
 window.addEventListener('storage',event => {
+  if (event.key === activeKey && event.newValue && read(activeKey) !== session.id) {
+    start();
+    return;
+  }
   if (event.key !== prefix + session.id || !event.newValue) return;
   const latest = JSON.parse(event.newValue);
   if (latest.revision < session.revision) return;

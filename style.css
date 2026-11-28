@@ -420,3 +420,10 @@ main.page-width, .header-inner { max-width: 980px; }
 #wechat-export { display: grid; justify-items: center; gap: 12px; max-width: 28rem; }
 #wechat-export > p { text-wrap: pretty; }
 #manual-copy { width: 100%; min-width: 0; font-size: 16px; }
+
+.response-panel .options > #continue { grid-column: 2; min-width: 0; padding-inline: 4px; }
+#history { margin: 1rem auto; color: var(--muted); }
+#history summary { cursor: pointer; }
+#history-list { padding-inline-start: 1.5rem; }
+#history-list li { margin: .5rem 0; }
+#history-copy { width: 100%; font-size: 1rem; }

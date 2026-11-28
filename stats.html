@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <title>问卷结果 · 角色动作对比问卷</title>
-  <link rel="stylesheet" href="style.css?v=25"><script src="stats.js?v=25" defer></script>
+  <link rel="stylesheet" href="style.css?v=28"><script src="stats.js?v=28" defer></script>
   <style>
     main.results { max-width: 1030px; } .results section { margin: 16px 0; }
     .results form { display: flex; flex-wrap: wrap; align-items: end; gap: 10px; }
@@ -14,11 +14,11 @@
   </style>
 </head>
 <body><main class="page-width results">
-  <h1>问卷结果</h1>
+  <h1>v28 问卷结果</h1>
   <section class="panel"><form id="access"><label>研究者密钥<input id="key" type="password" required autocomplete="current-password"></label>
     <button class="button button-primary">查看结果</button></form><p id="status" role="status"></p></section>
   <div id="results" hidden><section class="panel"><h2>参与情况</h2><p id="totals"></p></section>
-    <section class="panel"><h2>各组选择情况</h2><p>统计包含尚未完成问卷的参与者已保存的答案。每人每题只计一次，以最后一次选择为准。</p>
+    <section class="panel"><h2>各组选择情况</h2><p>每份答卷独立统计，包含已保存的未完成答卷。每份答卷每题只计最后一次选择。</p>
     <div class="scroll-table"><table><thead><tr><th>角色</th><th>比较类型</th><th>基准设置</th><th>测试设置</th><th>测试设置获选比例</th></tr></thead><tbody id="groups"></tbody></table></div></section>
     <section class="panel"><h2>每题选择情况</h2><div class="scroll-table"><table><thead><tr><th>题号</th><th>角色</th><th>场景</th><th>基准设置</th><th>测试设置</th><th>测试设置获选比例</th></tr></thead><tbody id="items"></tbody></table></div></section>
   </div>

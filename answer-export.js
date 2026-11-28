@@ -40,11 +40,11 @@ async function readAnswerLink(hash) {
   const body = match[1] === 'gz' ? stream.pipeThrough(new DecompressionStream('gzip')) : stream;
   const {name, rows} = await new Response(body).json();
   if (typeof name !== 'string' || !/^FAVE-v\d+-(preview-)?[a-f0-9-]{36}\.csv$/.test(name) ||
-      !Array.isArray(rows) || rows.length !== 30 ||
+      !Array.isArray(rows) || rows.length !== (name.startsWith('FAVE-v28-') ? 24 : 30) ||
       !rows.every(row => Array.isArray(row) && row.length === csvFields.length &&
         row.every(value => value === null || Number.isSafeInteger(value) && value >= 0 ||
           typeof value === 'string' && /^(?:[A-Za-z0-9][A-Za-z0-9_.: -]{0,99})?$/.test(value)))) {
     throw Error('Invalid answer sheet');
   }
-  return answerFile(name, rows);
+  return {file:answerFile(name, rows), count:rows.length};
 }

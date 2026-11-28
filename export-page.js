@@ -6,13 +6,13 @@ async function openAnswerLink() {
   const hash = location.hash;
   button.hidden = true;
   try {
-    const file = await readAnswerLink(hash);
+    const {file, count} = await readAnswerLink(hash);
     if (hash !== location.hash) return;
     if (/MicroMessenger/i.test(navigator.userAgent)) {
       status.textContent = '请将完整的下载链接粘贴到手机浏览器，再下载答卷';
       return;
     }
-    status.textContent = '已读取全部 30 题答案';
+    status.textContent = '已读取全部 ' + count + ' 题答案';
     button.onclick = () => downloadAnswerFile(file);
     button.hidden = false;
   } catch {
