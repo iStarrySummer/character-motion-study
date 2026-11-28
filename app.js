@@ -6,7 +6,9 @@ const preview = ['1', 'id'].includes(new URLSearchParams(location.search).get('p
 const mode = preview ? 'preview:' : 'study:';
 const prefix = 'fave53-v28:' + mode;
 const unsaved = new Map();
-const activeKey = prefix + 'active';
+// Rotate only the active pointer. Older sheets keep their export and upload records.
+const activeKey = 'fave53-current:v28.1:' + mode;
+const previousActiveKey = prefix + 'active';
 const collector = 'https://fave-motion-results.helpfulchick2.chatgpt.site/api/v28/responses';
 const inWeChat = /MicroMessenger/i.test(navigator.userAgent);
 let session;
@@ -222,7 +224,7 @@ async function sync() {
     try {
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
-        if (key?.startsWith(prefix) && key !== activeKey) pending.add(key.slice(prefix.length));
+        if (key?.startsWith(prefix) && key !== previousActiveKey) pending.add(key.slice(prefix.length));
       }
     } catch { /* The active session can still sync from memory. */ }
     for (const id of pending) {
@@ -419,7 +421,7 @@ function updateHistory() {
   try {
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key.startsWith(prefix) && key !== activeKey && !saved.has(key.slice(prefix.length))) {
+      if (key.startsWith(prefix) && key !== previousActiveKey && !saved.has(key.slice(prefix.length))) {
         const record = read(key);
         if (record) saved.set(record.id, record);
       }
