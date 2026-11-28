@@ -333,19 +333,18 @@ function render() {
     }
     field.append(choices);
     $('answers').replaceChildren(field);
-    $('previous').disabled = session.index === 0;
     $('continue').disabled = !session.rows[trial.item_id];
     $('continue').textContent = session.index === form.total_trials-1 ? '完成' : '下一题';
   }
   updateStatus();
   window.scrollTo(0,0);
 }
-function navigate(direction) {
-  if (direction > 0 && !session.rows[form.trials[session.index].item_id]) return;
-  if (session.index + direction === form.total_trials) {
+function advance() {
+  if (session.complete || !session.rows[form.trials[session.index].item_id]) return;
+  if (session.index + 1 === form.total_trials) {
     session.complete = true;
     session.revision++;
-  } else session.index += direction;
+  } else session.index++;
   save();
   render();
   void sync();
@@ -461,8 +460,7 @@ function updateHistory() {
 $('repeat').onclick = () => {
   if (session.complete) start(true);
 };
-$('previous').onclick = () => navigate(-1);
-$('continue').onclick = () => navigate(1);
+$('continue').onclick = advance;
 $('download-csv').onclick = downloadCsv;
 window.addEventListener('online',sync);
 window.addEventListener('offline',updateStatus);

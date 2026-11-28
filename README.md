@@ -13,3 +13,4 @@ Audio uses TTS-N for Penny and Leonard and TTS-E for Sheldon. Leonard’s LoRA c
 | v27 | [30-question questionnaire](v27/) | WeChat export and local answer backup | Retrieve a completed sheet across browsers |
 | v28 | [v28 release](https://github.com/iStarrySummer/character-motion-study/tree/study-v28) | 24 selected questions, alternating sides, centered Next button and repeat submissions | Run the selected comparisons and reduce the influence of button placement |
 | v28.1 | [Reset release](https://github.com/iStarrySummer/character-motion-study/tree/study-v28.1) | Start a fresh sheet on the first return visit | Let previous participants begin again from question 1 |
+| v28.2 | [Navigation update](https://github.com/iStarrySummer/character-motion-study/tree/study-v28.2) | Removed the Previous button and its row | Simplify the controls below the videos |

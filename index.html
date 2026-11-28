@@ -10,7 +10,7 @@
   <script defer src="study-data.js?v=28"></script>
   <script defer src="trios.js?v=28"></script>
   <script defer src="answer-export.js?v=28"></script>
-  <script defer src="app.js?v=28.1"></script>
+  <script defer src="app.js?v=28.2"></script>
 </head>
 <body>
   <header id="study-header" class="site-header" hidden>
@@ -29,12 +29,10 @@
     <section id="trial-screen" class="trial-layout" aria-label="当前题目" hidden>
       <section id="candidates" class="panel" aria-label="待比较的视频"></section>
       <section class="panel response-panel" aria-label="你的选择">
-        <div id="answers"></div>
+        <div id="answers">
+          <button id="continue" class="button button-primary" type="button" disabled>下一题</button>
+        </div>
       </section>
-      <nav class="question-nav" aria-label="题目导航">
-        <button id="previous" class="button" type="button">上一题</button>
-        <button id="continue" class="button button-primary" type="button" disabled>下一题</button>
-      </nav>
       <p id="feedback" class="status" role="status"></p>
     </section>
 
